@@ -35,8 +35,8 @@ export class genshinDpsHelp extends plugin {
       ],
       common: [
         { cmd: '#dps视频 <序号>', desc: '取榜单第 N 条的 B 站视频链接' },
-        { cmd: '#dps刷新', desc: '强制刷新数据（仅主人）' },
-        { cmd: '#dps更新', desc: '从 GitHub 拉取最新版本（仅主人），更新后需重启' }
+        { cmd: '#dps刷新', desc: '重新拉取榜单数据（仅主人）' },
+        { cmd: '#dps更新', desc: '更新插件版本（从 GitHub 拉取，仅主人）' }
       ],
       perPage: CONFIG.perPage,
       cacheMin: Math.round(CONFIG.cacheTime / 60000),
@@ -58,8 +58,8 @@ export class genshinDpsHelp extends plugin {
       '#dps危战 <boss> 低金    只看低金',
       '#dps危战列表 [版本]     列出 boss',
       '#dps视频 <序号>         取该名次视频',
-      '#dps刷新                刷新数据（仅主人）',
-      '#dps更新                更新插件（仅主人）',
+      '#dps刷新                刷新榜单数据（仅主人）',
+      '#dps更新                更新插件版本（仅主人）',
       '━━━━━━━━━━━━━━',
       versionLine()
     ].join('\n')

@@ -59,8 +59,8 @@ export class genshinDps extends plugin {
         { reg: /^[#＃/／]?\s*(dps)?危战(?=$|[\s])/i, fnc: 'weizhan' },
         { reg: /^[#＃/／]?\s*dps(配队|队伍榜|榜)(?=$|[\s])/i, fnc: 'teams' },
         { reg: /^[#＃/／]?\s*dps(角色|配队榜|char)(?=$|[\s])/i, fnc: 'teams' },
-        { reg: /^[#＃/／]?\s*dps(刷新|更新数据)(?=$|[\s])/i, fnc: 'refresh' },
-        { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s])/i, fnc: 'update' }
+        { reg: /^[#＃/／]?\s*dps(刷新数据|刷新)(?=$|[\s])/i, fnc: 'refresh' },
+        { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s]|数据)/i, fnc: 'update' }
       ]
     })
   }
@@ -478,7 +478,7 @@ export class genshinDps extends plugin {
       return true
     }
     await e.reply(
-      '✅ 数据已刷新\n' +
+      '✅ 榜单数据已刷新（插件版本未变，更新插件请用 #dps更新）\n' +
         `· DPS榜：${r1.ok ? `${r1.data.length} 条` : `失败（${r1.err}）`}\n` +
         `· 危战榜：${r2.ok ? `${r2.data.length} 条` : `失败（${r2.err}）`}\n` +
         `上次：${before}\n本次：${caches.teams.at ? new Date(caches.teams.at).toLocaleString('zh-CN') : '-'}`
@@ -494,6 +494,23 @@ export class genshinDps extends plugin {
    */
   async update(e) {
     loadConfig()
+
+    // 「更新数据」不是本命令的职责 —— 引导到 #dps刷新，避免两个功能混淆
+    const rest = String(e?.msg ?? '')
+      .replace(/^[#＃/／]?\s*dps(更新|升级|update)/i, '')
+      .trim()
+    if (/数据|榜单|缓存|排行/.test(rest)) {
+      await e.reply(
+        [
+          '#dps更新 是「更新插件版本」（从 GitHub 拉取代码）。',
+          '#dps刷新 才是「重新拉取榜单数据」。',
+          '',
+          '要刷新数据请发：#dps刷新'
+        ].join('\n')
+      )
+      return true
+    }
+
     if (!e.isMaster) {
       await e.reply('更新插件仅限机器人主人。')
       return true
