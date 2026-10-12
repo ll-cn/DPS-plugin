@@ -25,7 +25,7 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 在 **Yunzai 根目录**执行：
 
 ```bash
-git clone <本仓库地址> plugins/genshin-dps
+git clone https://github.com/ll-cn/DPS-plugin.git plugins/genshin-dps
 ```
 
 然后重启机器人。
@@ -35,13 +35,13 @@ git clone <本仓库地址> plugins/genshin-dps
 装有 **earth-k-plugin**：
 
 ```
-#安装插件 <本仓库地址>
+#安装插件 https://github.com/ll-cn/DPS-plugin.git
 ```
 
 装有 **AQing-plugin**：
 
 ```
-#阿晴安装插件 <本仓库地址>
+#阿晴安装插件 https://github.com/ll-cn/DPS-plugin.git
 ```
 
 ### ⚠️ 必须克隆整个仓库

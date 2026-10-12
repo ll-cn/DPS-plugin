@@ -40,7 +40,7 @@ export function renderFailMsg() {
       `缺失：${miss.join('、')}`,
       '',
       '插件必须把整个仓库克隆到 plugins/ 下（不能只放 js）：',
-      `  git clone <仓库地址> "plugins/${PLUGIN_DIR_NAME}"`,
+      `  git clone https://github.com/ll-cn/DPS-plugin.git "plugins/${PLUGIN_DIR_NAME}"`,
       '它依赖 resources/ 下的 3 个 html 模板，只放 js 是跑不起图的。'
     ].join('\n')
   }
