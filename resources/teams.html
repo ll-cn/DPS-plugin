@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 742px;
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: linear-gradient(160deg, #eef4fb 0%, #e7eef8 40%, #f2f6fb 100%);
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #container {
+      width: 742px;
+      padding: 28px 26px 22px;
+      background:
+        radial-gradient(ellipse 700px 340px at 12% -6%, rgba(255, 214, 170, .5) 0%, rgba(255, 214, 170, 0) 62%),
+        radial-gradient(ellipse 700px 340px at 96% 4%, rgba(180, 206, 255, .45) 0%, rgba(180, 206, 255, 0) 62%),
+        radial-gradient(ellipse 600px 380px at 50% 112%, rgba(214, 196, 255, .38) 0%, rgba(214, 196, 255, 0) 68%),
+        linear-gradient(165deg, #f4f7fc 0%, #e9eff9 55%, #f3f6fb 100%);
+    }
+
+    /* ---------------- 头部 ---------------- */
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header .title {
+      font-size: 30px;
+      font-weight: 700;
+      color: #33415c;
+      letter-spacing: 1px;
+      margin-bottom: 9px;
+    }
+    .header .subtitle {
+      font-size: 14px;
+      color: #8e9bb3;
+      letter-spacing: .3px;
+    }
+    .header .subtitle .hl {
+      color: #5b7cfa;
+      font-weight: 600;
+    }
+
+    /* ---------------- 卡片 ---------------- */
+    .card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, .82);
+      border-radius: 18px;
+      padding: 18px 20px 18px 16px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 18px rgba(120, 145, 190, .13), 0 1px 3px rgba(120, 145, 190, .07);
+      border: 1px solid rgba(255, 255, 255, .9);
+    }
+    .card .rank {
+      width: 46px;
+      flex-shrink: 0;
+      text-align: center;
+      font-size: 27px;
+      font-weight: 700;
+      font-style: italic;
+      line-height: 1;
+    }
+
+    .members {
+      flex: 1;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    .member {
+      width: 96px;
+      text-align: center;
+    }
+    .avatar-wrap {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 7px;
+    }
+    /* 裁剪放在内层：角标要完整露在圆形之外，不能被 overflow 裁掉 */
+    .avatar-wrap .clip {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #f7f9ff, #e8eefc);
+      border: 2px solid #fff;
+      box-shadow: 0 3px 12px rgba(120, 145, 190, .26);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .avatar-wrap .clip img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+    .avatar-wrap .fallback {
+      font-size: 32px;
+      font-weight: 700;
+      color: #a9b8d4;
+    }
+    /* 命座角标 */
+    .avatar-wrap .cons {
+      position: absolute;
+      right: -3px;
+      bottom: -3px;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 5px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #6f8ef7, #5271e8);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 20px;
+      text-align: center;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 5px rgba(82, 113, 232, .45);
+      box-sizing: border-box;
+    }
+    .avatar-wrap .cons.c0 { background: linear-gradient(145deg, #b9c4d8, #9aa8c2); box-shadow: 0 1px 4px rgba(154,168,194,.4); }
+    .member .cname {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3b4a63;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .member .ccons {
+      font-size: 12px;
+      color: #93a1b8;
+    }
+
+    /* ---------------- 右侧数据 ---------------- */
+    .stats {
+      width: 132px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-left: 6px;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      color: #6a5bd4;
+      background: linear-gradient(135deg, #f0edff 0%, #e8e4ff 100%);
+      border: 1px solid #ddd6fb;
+      border-radius: 10px;
+      padding: 3px 11px;
+      margin-bottom: 9px;
+      max-width: 118px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tag.none { visibility: hidden; }
+    .dmg {
+      font-size: 27px;
+      font-weight: 800;
+      color: #e8553f;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      letter-spacing: .5px;
+    }
+    .cost {
+      font-size: 13px;
+      color: #7b8aa5;
+      line-height: 1.75;
+      margin-bottom: 8px;
+    }
+    .cost .row2 { font-size: 12.5px; }
+    .cost .lim { color: #e8553f; font-weight: 700; }
+    .cost .nor { color: #4b9e6b; font-weight: 700; }
+    .cost .cnum { color: #f0851f; font-weight: 700; }
+
+    .vbtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 22px;
+      background: #f4334a;
+      border-radius: 6px;
+      vertical-align: middle;
+    }
+    .vbtn svg { width: 13px; height: 13px; }
+
+    /* ---------------- 底部 ---------------- */
+    .footer {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px dashed rgba(150, 168, 200, .38);
+      text-align: center;
+      font-size: 13px;
+      color: #93a1b8;
+      line-height: 1.9;
+    }
+    .footer .cmd { color: #5b7cfa; font-weight: 600; }
+    .footer .src { font-size: 12px; color: #a8b4c8; }
+
+    /* ---------------- 空状态 ---------------- */
+    .empty {
+      text-align: center;
+      padding: 60px 0;
+      font-size: 17px;
+      color: #93a1b8;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="header">
+      <div class="title">{{title}}</div>
+      <div class="subtitle">
+        角色：<span class="hl">{{charName}}</span>
+        {{if costLabel}} | <span class="hl">{{costLabel}}</span>{{/if}}
+        | 共 {{total}} 条 | 第 {{page}}页/共 {{totalPage}}页
+      </div>
+    </div>
+
+    {{if list.length === 0}}
+      <div class="empty">{{emptyText}}</div>
+    {{/if}}
+
+    {{each list item idx}}
+      <div class="card">
+        <div class="rank" style="color:{{item.rankColor}}">{{item.rank}}</div>
+
+        <div class="members">
+          {{each item.members m}}
+            <div class="member">
+              <div class="avatar-wrap">
+                <div class="clip">
+                  {{if m.face}}
+                    <img src="{{m.face}}" />
+                  {{else}}
+                    <div class="fallback">{{m.short}}</div>
+                  {{/if}}
+                </div>
+                <div class="cons {{m.consCss}}">{{m.cons}}</div>
+              </div>
+              <div class="cname">{{m.name}}</div>
+              <div class="ccons">{{m.consText}}</div>
+            </div>
+          {{/each}}
+        </div>
+
+        <div class="stats">
+          {{if item.tag}}
+            <div class="tag">{{item.tag}}</div>
+          {{else}}
+            <div class="tag none">-</div>
+          {{/if}}
+          <div class="dmg">{{item.dmgText}}</div>
+          <div class="cost">{{@item.costHtml}}</div>
+          {{if item.video}}
+            <div class="vbtn">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8 5.5v13l11-6.5L8 5.5z" fill="#fff"/>
+              </svg>
+            </div>
+          {{/if}}
+        </div>
+      </div>
+    {{/each}}
+
+    <div class="footer">
+      发送 <span class="cmd">#dps视频 {{page}}</span> 获取视频 ｜ <span class="cmd">#dps帮助</span> 看全部指令<br />
+      <span class="src">数据来源 mhydps.cn</span>
+    </div>
+  </div>
+</body>
+</html>

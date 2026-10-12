@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 742px;
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #container {
+      width: 742px;
+      padding: 28px 26px 22px;
+      background:
+        radial-gradient(ellipse 700px 340px at 10% -6%, rgba(168, 200, 255, .5) 0%, rgba(168, 200, 255, 0) 62%),
+        radial-gradient(ellipse 700px 340px at 96% 4%, rgba(214, 186, 255, .45) 0%, rgba(214, 186, 255, 0) 62%),
+        radial-gradient(ellipse 600px 380px at 50% 112%, rgba(255, 206, 168, .35) 0%, rgba(255, 206, 168, 0) 68%),
+        linear-gradient(165deg, #f2f6fd 0%, #e8eef9 55%, #f4f6fb 100%);
+    }
+
+    /* ---------------- 头部 ---------------- */
+    .header { text-align: center; margin-bottom: 20px; }
+    .header .title {
+      font-size: 30px; font-weight: 700; color: #33415c;
+      letter-spacing: 1px; margin-bottom: 9px;
+    }
+    .header .subtitle { font-size: 14px; color: #8e9bb3; letter-spacing: .3px; }
+    .header .subtitle .hl { color: #5b7cfa; font-weight: 600; }
+    .header .subtitle .gold { color: #e8930c; font-weight: 700; }
+
+    /* ---------------- 卡片 ---------------- */
+    .card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, .84);
+      border-radius: 18px;
+      padding: 18px 20px 18px 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 18px rgba(120, 145, 190, .13), 0 1px 3px rgba(120, 145, 190, .07);
+      border: 1px solid rgba(255, 255, 255, .9);
+    }
+    .card .rank {
+      width: 54px; flex-shrink: 0; text-align: center;
+      font-size: 30px; font-weight: 800; font-style: italic; line-height: 1;
+    }
+
+    .members {
+      flex: 1;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      min-width: 0;
+    }
+    .member { width: 84px; text-align: center; }
+    .avatar-wrap {
+      position: relative;
+      width: 68px; height: 68px;
+      margin: 0 auto 6px;
+    }
+    /* 裁剪放内层，命座角标要完整露在圆外 */
+    .avatar-wrap .clip {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #f7f9ff, #e8eefc);
+      border: 2px solid #fff;
+      box-shadow: 0 3px 12px rgba(120, 145, 190, .26);
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar-wrap .clip img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center top; display: block;
+    }
+    .avatar-wrap .fallback { font-size: 28px; font-weight: 700; color: #a9b8d4; }
+    .avatar-wrap .cons {
+      position: absolute; right: -3px; bottom: -3px;
+      min-width: 22px; height: 22px; padding: 0 5px;
+      border-radius: 11px;
+      background: linear-gradient(145deg, #6f8ef7, #5271e8);
+      color: #fff; font-size: 12px; font-weight: 700;
+      line-height: 18px; text-align: center;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 5px rgba(82, 113, 232, .45);
+      box-sizing: border-box;
+    }
+    .avatar-wrap .cons.c0 { background: linear-gradient(145deg, #b9c4d8, #9aa8c2); box-shadow: 0 1px 4px rgba(154,168,194,.4); }
+    .member .cname {
+      font-size: 14px; font-weight: 600; color: #3b4a63;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ---------------- 右侧数据（金数 / 秒数） ---------------- */
+    .stats {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding-left: 10px;
+    }
+    .stat { text-align: center; width: 74px; }
+    .stat .v {
+      font-size: 25px; font-weight: 800; line-height: 1.15;
+      letter-spacing: .5px;
+    }
+    .stat .l { font-size: 12px; color: #93a1b8; margin-top: 2px; }
+    .stat.cost .v { color: #f0851f; }
+    .stat.time .v { color: #4b7deb; }
+
+    .vbtn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 26px;
+      background: #f4334a; border-radius: 7px;
+      flex-shrink: 0;
+    }
+    .vbtn svg { width: 15px; height: 15px; }
+    .vbtn.none { visibility: hidden; }
+
+    /* ---------------- boss 列表模式 ---------------- */
+    .ver-block {
+      background: rgba(255, 255, 255, .84);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 13px;
+      box-shadow: 0 3px 14px rgba(120, 145, 190, .1);
+      border: 1px solid rgba(255, 255, 255, .9);
+    }
+    .ver-block .ver {
+      font-size: 17px; font-weight: 700; color: #5b7cfa;
+      margin-bottom: 9px;
+    }
+    .ver-block .ver .cur {
+      font-size: 12px; color: #fff; background: #5b7cfa;
+      border-radius: 8px; padding: 2px 8px; margin-left: 8px; font-weight: 600;
+      vertical-align: middle;
+    }
+    .boss-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .boss-chip {
+      font-size: 13.5px; color: #4a5877;
+      background: #eef2fb;
+      border: 1px solid #e0e7f6;
+      border-radius: 9px;
+      padding: 5px 12px;
+    }
+    .boss-chip .c {
+      color: #8e9bb3; font-weight: 700; font-size: 12.5px;
+      margin-left: 4px;
+    }
+    .boss-chip.hot { color: #c96a00; background: #fff4e0; border-color: #ffe0ad; font-weight: 600; }
+    .boss-chip.hot .c { color: #d69a4a; }
+
+    /* ---------------- 底部 ---------------- */
+    .footer {
+      margin-top: 20px; padding-top: 15px;
+      border-top: 1px dashed rgba(150, 168, 200, .38);
+      text-align: center; font-size: 13px; color: #93a1b8; line-height: 1.9;
+    }
+    .footer .cmd { color: #5b7cfa; font-weight: 600; }
+    .footer .src { font-size: 12px; color: #a8b4c8; }
+
+    .empty { text-align: center; padding: 60px 0; font-size: 17px; color: #93a1b8; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    {{if bossListMode}}
+      <!-- ============ boss 列表 ============ -->
+      <div class="header">
+        <div class="title">{{listTitle}}</div>
+        <div class="subtitle">{{@listSub}}</div>
+      </div>
+
+      {{each groups g}}
+        <div class="ver-block">
+          <div class="ver">
+            {{g.ver}} 版本{{if g.ver === latestVer}}<span class="cur">最新</span>{{/if}}
+          </div>
+          <div class="boss-chips">
+            {{each g.bosses b}}
+              <span class="boss-chip {{if b.hot}}hot{{/if}}">{{b.name}}{{if b.count !== undefined && b.count !== ''}} <b class="c">{{b.count}}</b>{{/if}}</span>
+            {{/each}}
+          </div>
+        </div>
+      {{/each}}
+
+      <div class="footer">
+        发送 <span class="cmd">#dps危战 &lt;boss名&gt;</span> 查看该 boss 的配队榜<br />
+        <span class="src">数据来源 mhydps.cn{{if showCountTip}} ｜ 名称后数字为该 boss 的配队条数{{/if}}</span>
+      </div>
+
+    {{else}}
+      <!-- ============ 危战榜单 ============ -->
+      <div class="header">
+        <div class="title">{{bossName}} · 危战榜</div>
+        <div class="subtitle">
+          版本 <span class="hl">{{ver}}</span>
+          {{if costLabel}} | <span class="hl">{{costLabel}}</span>{{/if}}
+          | 共 {{total}} 条 | 第 {{page}}页/共 {{totalPage}}页
+        </div>
+      </div>
+
+      {{if list.length === 0}}
+        <div class="empty">没有数据</div>
+      {{/if}}
+
+      {{each list item idx}}
+        <div class="card">
+          <div class="rank" style="color:{{item.rankColor}}">{{item.rank}}</div>
+
+          <div class="members">
+            {{each item.members m}}
+              <div class="member">
+                <div class="avatar-wrap">
+                  <div class="clip">
+                    {{if m.face}}
+                      <img src="{{m.face}}" />
+                    {{else}}
+                      <div class="fallback">{{m.short}}</div>
+                    {{/if}}
+                  </div>
+                  <div class="cons {{m.consCss}}">{{m.cons}}</div>
+                </div>
+                <div class="cname">{{m.name}}</div>
+              </div>
+            {{/each}}
+          </div>
+
+          <div class="stats">
+            <div class="stat cost">
+              <div class="v">{{item.costText}}</div>
+              <div class="l">金数</div>
+            </div>
+            <div class="stat time">
+              <div class="v">{{item.speedText}}</div>
+              <div class="l">用时</div>
+            </div>
+            <div class="vbtn {{if !item.video}}none{{/if}}">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8 5.5v13l11-6.5L8 5.5z" fill="#fff"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      {{/each}}
+
+      <div class="footer">
+        发送 <span class="cmd">#dps视频 {{page}}</span> 获取视频 ｜ <span class="cmd">#dps危战列表</span> 换 boss<br />
+        <span class="src">数据来源 mhydps.cn ｜ 危战按通关秒数排名，越快越靠前</span>
+      </div>
+    {{/if}}
+  </div>
+</body>
+</html>

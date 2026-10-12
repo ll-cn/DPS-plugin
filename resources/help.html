@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 720px;
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: #333;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #container {
+      width: 720px;
+      padding: 30px 34px 24px;
+      background:
+        radial-gradient(ellipse 640px 300px at 8% -8%, rgba(255, 214, 170, .45) 0%, rgba(255, 214, 170, 0) 62%),
+        radial-gradient(ellipse 640px 300px at 100% 2%, rgba(178, 205, 255, .48) 0%, rgba(178, 205, 255, 0) 62%),
+        radial-gradient(ellipse 560px 340px at 55% 110%, rgba(212, 194, 255, .36) 0%, rgba(212, 194, 255, 0) 68%),
+        linear-gradient(165deg, #f4f7fc 0%, #e9eff9 55%, #f3f6fb 100%);
+    }
+
+    .head { text-align: center; margin-bottom: 24px; }
+    .head .t {
+      font-size: 31px; font-weight: 800; color: #33415c;
+      letter-spacing: 1.5px; margin-bottom: 8px;
+    }
+    .head .s { font-size: 13.5px; color: #8e9bb3; }
+    .head .s .hl { color: #5b7cfa; font-weight: 600; }
+
+    .sec {
+      background: rgba(255, 255, 255, .84);
+      border-radius: 16px;
+      padding: 16px 20px 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(120, 145, 190, .11);
+      border: 1px solid rgba(255, 255, 255, .9);
+    }
+    .sec .title {
+      font-size: 16px; font-weight: 700; color: #3b4a63;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sec .title .dot {
+      width: 5px; height: 17px; border-radius: 3px;
+      background: linear-gradient(180deg, #6f8ef7, #9a7bf0);
+    }
+    .sec.wz .title .dot { background: linear-gradient(180deg, #f0a04b, #e8553f); }
+    .sec.common .title .dot { background: linear-gradient(180deg, #58c38f, #3ba876); }
+
+    .row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 7px 0;
+      border-bottom: 1px dashed rgba(150, 168, 200, .22);
+    }
+    .row:last-child { border-bottom: none; }
+    .row .cmd {
+      flex-shrink: 0;
+      min-width: 218px;
+      font-family: "JetBrains Mono", "Consolas", monospace;
+      font-size: 14px; font-weight: 700; color: #5271e8;
+      background: #eef2fd; border-radius: 7px;
+      padding: 3px 10px;
+    }
+    .row .desc {
+      font-size: 13.5px; color: #6d7b95; line-height: 1.5;
+    }
+
+    .tip {
+      margin-top: 4px;
+      text-align: center;
+      font-size: 12.5px; color: #93a1b8; line-height: 1.9;
+    }
+    .tip .k { color: #5b7cfa; font-weight: 600; }
+    .foot {
+      margin-top: 16px; padding-top: 13px;
+      border-top: 1px dashed rgba(150, 168, 200, .38);
+      text-align: center; font-size: 12px; color: #a8b4c8;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="head">
+      <div class="t">原神 DPS · 危战 榜单</div>
+      <div class="s">数据来源 <span class="hl">mhydps.cn</span> ｜ 每页 {{perPage}} 条 ｜ 缓存 {{cacheMin}} 分钟</div>
+    </div>
+
+    <div class="sec">
+      <div class="title"><span class="dot"></span>DPS 配队榜（按伤害）</div>
+      {{each dps r}}
+        <div class="row">
+          <span class="cmd">{{r.cmd}}</span>
+          <span class="desc">{{r.desc}}</span>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="sec wz">
+      <div class="title"><span class="dot"></span>危战榜（按通关秒数，越快越靠前）</div>
+      {{each wz r}}
+        <div class="row">
+          <span class="cmd">{{r.cmd}}</span>
+          <span class="desc">{{r.desc}}</span>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="sec common">
+      <div class="title"><span class="dot"></span>通用</div>
+      {{each common r}}
+        <div class="row">
+          <span class="cmd">{{r.cmd}}</span>
+          <span class="desc">{{r.desc}}</span>
+        </div>
+      {{/each}}
+    </div>
+
+    <div class="tip">
+      危战当前最新版本：<span class="k">{{latestVer}}</span> ｜ 角色俗称可在插件顶部 ALIAS 表维护
+    </div>
+    <div class="foot">mhydps.cn ｜ 千星 120 秒冷启动打桩 / 危战</div>
+  </div>
+</body>
+</html>
