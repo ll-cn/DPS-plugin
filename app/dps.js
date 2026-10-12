@@ -1,4 +1,8 @@
 import plugin from '../../../lib/plugins/plugin.js'
+import fs from 'node:fs'
+import path from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { CONFIG, ALIAS, loadConfig } from '../model/config.js'
 import {
   BOSSES,
@@ -11,12 +15,34 @@ import {
 import { caches, fetchData, fetchTeams } from '../model/api.js'
 import { loadChars } from '../model/char.js'
 import { toCard, toWeizhanCard, dmgText } from '../model/card.js'
+// 注意：本文件已有 PLUGIN_NAME（插件注册名），这里给仓库名起个别名避免重名
+import { PLUGIN_NAME as PKG_NAME, VERSION } from '../model/version.js'
 import {
   TPL_TEAMS,
   TPL_WEIZHAN,
+  PLUGIN_ROOT,
+  PLUGIN_DIR_NAME,
   renderTo,
   renderFailMsg
 } from '../model/render.js'
+
+const execFileAsync = promisify(execFile)
+
+/** 正在更新中（防止并发 pull） */
+let updating = false
+
+/** 取当前 git 短提交号；不是 git 仓库时返回空串 */
+async function gitShortRev() {
+  try {
+    const { stdout } = await execFileAsync('git', ['rev-parse', '--short', 'HEAD'], {
+      cwd: PLUGIN_ROOT,
+      timeout: 15000
+    })
+    return stdout.trim()
+  } catch {
+    return ''
+  }
+}
 
 const PLUGIN_NAME = '原神DPS'
 
@@ -33,7 +59,8 @@ export class genshinDps extends plugin {
         { reg: /^[#＃/／]?\s*(dps)?危战(?=$|[\s])/i, fnc: 'weizhan' },
         { reg: /^[#＃/／]?\s*dps(配队|队伍榜|榜)(?=$|[\s])/i, fnc: 'teams' },
         { reg: /^[#＃/／]?\s*dps(角色|配队榜|char)(?=$|[\s])/i, fnc: 'teams' },
-        { reg: /^[#＃/／]?\s*dps(刷新|更新)(?=$|[\s])/i, fnc: 'refresh' }
+        { reg: /^[#＃/／]?\s*dps(刷新|更新数据)(?=$|[\s])/i, fnc: 'refresh' },
+        { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s])/i, fnc: 'update' }
       ]
     })
   }
@@ -457,6 +484,87 @@ export class genshinDps extends plugin {
         `上次：${before}\n本次：${caches.teams.at ? new Date(caches.teams.at).toLocaleString('zh-CN') : '-'}`
     )
     return true
+  }
+
+  /* ---------------------------- 更新插件 ---------------------------- */
+
+  /**
+   * #dps更新 —— 从 GitHub 拉取最新代码（git pull）
+   * 仅主人可用；要求插件是用 git clone 安装的
+   */
+  async update(e) {
+    loadConfig()
+    if (!e.isMaster) {
+      await e.reply('更新插件仅限机器人主人。')
+      return true
+    }
+    if (updating) {
+      await e.reply('正在更新中，请稍候再试。')
+      return true
+    }
+
+    if (!fs.existsSync(path.join(PLUGIN_ROOT, '.git'))) {
+      await e.reply(
+        [
+          '😵 这个插件不是用 git 克隆安装的，没法自动更新。',
+          `插件目录：${PLUGIN_ROOT}`,
+          '',
+          '用下面的命令重装一次，之后就能用 #dps更新 了：',
+          `  git clone https://github.com/ll-cn/DPS-plugin.git "${path.join('plugins', PLUGIN_DIR_NAME)}"`
+        ].join('\n')
+      )
+      return true
+    }
+
+    updating = true
+    try {
+      const before = await gitShortRev()
+      let out = ''
+
+      try {
+        const r = await execFileAsync('git', ['pull', '--ff-only'], {
+          cwd: PLUGIN_ROOT,
+          timeout: 60000
+        })
+        out = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
+      } catch (err) {
+        const detail = String(err?.stderr || err?.stdout || err?.message || err)
+          .trim()
+          .slice(0, 300)
+        await e.reply(
+          [
+            '😵 更新失败。',
+            '',
+            '常见原因：',
+            '· 网络不通 —— git 需要走代理（本机 mihomo 是 127.0.0.1:10090）',
+            '· 插件目录里改过文件，没法快进合并',
+            '',
+            `原始信息：${detail}`,
+            `插件目录：${PLUGIN_ROOT}`
+          ].join('\n')
+        )
+        return true
+      }
+
+      const after = await gitShortRev()
+      if (before && after && before === after) {
+        await e.reply(`✅ 已是最新版本\n${PKG_NAME} v${VERSION}｜${after}`)
+        return true
+      }
+
+      await e.reply(
+        [
+          '✅ 更新完成',
+          `${before || '（未知）'} → ${after || '（未知）'}`,
+          '',
+          '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。',
+          out ? `\n${out.slice(0, 300)}` : ''
+        ].join('\n')
+      )
+      return true
+    } finally {
+      updating = false
+    }
   }
 }
 

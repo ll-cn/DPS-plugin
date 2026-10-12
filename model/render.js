@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { log } from './log.js'
+import { PLUGIN_NAME, VERSION } from './version.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -11,8 +12,10 @@ export const TPL_TEAMS = path.join(RES_DIR, 'teams.html')
 export const TPL_WEIZHAN = path.join(RES_DIR, 'weizhan.html')
 export const TPL_HELP = path.join(RES_DIR, 'help.html')
 
-/** 插件目录名（随克隆到的目录名变化，用于提示语） */
-export const PLUGIN_DIR_NAME = path.basename(path.dirname(RES_DIR))
+/** 插件根目录（克隆到的目录，随目录名变化） */
+export const PLUGIN_ROOT = path.dirname(RES_DIR)
+/** 插件目录名 */
+export const PLUGIN_DIR_NAME = path.basename(PLUGIN_ROOT)
 
 /** 缺失的模板文件列表（空数组 = 都在） */
 export function missingTplList() {
@@ -65,6 +68,9 @@ export async function renderTo(tplFile, name, data) {
     const img = await renderer.render(name, {
       tplFile,
       saveId: `${name}-${Date.now()}`,
+      // 页脚统一显示插件名与版本（模板里用 {{pluginName}} / {{version}}）
+      pluginName: PLUGIN_NAME,
+      version: VERSION,
       ...data
     })
     if (!img) {
