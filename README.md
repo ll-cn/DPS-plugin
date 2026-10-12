@@ -25,7 +25,7 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 在 **Yunzai 根目录**执行：
 
 ```bash
-git clone https://github.com/ll-cn/DPS-plugin.git plugins/genshin-dps
+git clone https://github.com/ll-cn/DPS-plugin.git plugins/DPS-plugin
 ```
 
 然后重启机器人。

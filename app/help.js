@@ -19,7 +19,7 @@ export class genshinDpsHelp extends plugin {
   async help(e) {
     loadConfig()
 
-    const img = await renderTo(TPL_HELP, 'genshin-dps-help', {
+    const img = await renderTo(TPL_HELP, 'dps-plugin-help', {
       dps: [
         { cmd: '#dps配队 <角色>', desc: '该角色的配队DPS榜（按伤害），每页 5 条' },
         { cmd: '#dps配队 <角色> 2', desc: '看第 2 页' },

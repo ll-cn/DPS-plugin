@@ -169,7 +169,7 @@ export class genshinDps extends plugin {
     const cards = slice.map((t, i) => toWeizhanCard(t, chars, start + i, start + i + 1))
     const costLabel = maxCost !== null ? (lowOnly ? `低金（≤${maxCost}金）` : `≤${maxCost}金`) : ''
 
-    const img = await renderTo(TPL_WEIZHAN, 'genshin-dps-weizhan', {
+    const img = await renderTo(TPL_WEIZHAN, 'dps-plugin-weizhan', {
       bossName: boss.name,
       ver: boss.ver,
       costLabel,
@@ -244,7 +244,7 @@ export class genshinDps extends plugin {
 
     const bossTotal = groups.reduce((n, g) => n + g.bosses.length, 0)
 
-    const img = await renderTo(TPL_WEIZHAN, 'genshin-dps-bosslist', {
+    const img = await renderTo(TPL_WEIZHAN, 'dps-plugin-bosslist', {
       bossListMode: true,
       groups,
       latestVer: LATEST_VER,
@@ -307,7 +307,7 @@ export class genshinDps extends plugin {
 
     const cards = slice.map((t, i) => toCard(t, chars, (cur - 1) * CONFIG.perPage + i))
 
-    const img = await renderTo(TPL_TEAMS, 'genshin-dps-teams', {
+    const img = await renderTo(TPL_TEAMS, 'dps-plugin-teams', {
       title: `${charName} DPS配队`,
       charName,
       costLabel: maxCost !== null ? `≤${maxCost}金` : '',
@@ -376,7 +376,7 @@ export class genshinDps extends plugin {
   /* ---------------------------- 视频 ---------------------------- */
 
   videoKey(e) {
-    return `Yz:genshin-dps:video:${e.isGroup ? e.group_id : e.user_id}`
+    return `Yz:dps-plugin:video:${e.isGroup ? e.group_id : e.user_id}`
   }
 
   async saveVideos(e, charName, page, slice, kind = 'teams') {
