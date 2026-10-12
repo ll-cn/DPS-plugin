@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { log } from './log.js'
-import { PLUGIN_NAME, VERSION } from './version.js'
+import { versionHtml } from './version.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -68,9 +68,8 @@ export async function renderTo(tplFile, name, data) {
     const img = await renderer.render(name, {
       tplFile,
       saveId: `${name}-${Date.now()}`,
-      // 页脚统一显示插件名与版本（模板里用 {{pluginName}} / {{version}}）
-      pluginName: PLUGIN_NAME,
-      version: VERSION,
+      // 页脚统一显示版本（模板里用 {{@versionHtml}} 原样输出）
+      versionHtml: versionHtml(),
       ...data
     })
     if (!img) {

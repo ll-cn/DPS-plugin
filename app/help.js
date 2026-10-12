@@ -2,6 +2,7 @@ import plugin from '../../../lib/plugins/plugin.js'
 import { CONFIG, loadConfig } from '../model/config.js'
 import { LATEST_VER } from '../model/boss.js'
 import { TPL_HELP, renderTo } from '../model/render.js'
+import { versionLine } from '../model/version.js'
 
 const PLUGIN_NAME = '原神DPS帮助'
 
@@ -58,7 +59,9 @@ export class genshinDpsHelp extends plugin {
       '#dps危战列表 [版本]     列出 boss',
       '#dps视频 <序号>         取该名次视频',
       '#dps刷新                刷新数据（仅主人）',
-      '#dps更新                更新插件（仅主人）'
+      '#dps更新                更新插件（仅主人）',
+      '━━━━━━━━━━━━━━',
+      versionLine()
     ].join('\n')
   }
 }

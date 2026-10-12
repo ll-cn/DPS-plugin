@@ -161,6 +161,8 @@
     }
     .footer .cmd { color: #5b7cfa; font-weight: 600; }
     .footer .src { font-size: 12px; color: #a8b4c8; }
+    .footer .ver { color: #d9a441; font-weight: 700; }
+    .footer .dot { color: #c3ccdc; }
 
     .empty { text-align: center; padding: 60px 0; font-size: 17px; color: #93a1b8; }
   </style>
@@ -189,7 +191,7 @@
 
       <div class="footer">
         发送 <span class="cmd">#dps危战 &lt;boss名&gt;</span> 查看该 boss 的配队榜<br />
-        <span class="src">数据来源 mhydps.cn{{if showCountTip}} ｜ 名称后数字为该 boss 的配队条数{{/if}} ｜ {{pluginName}} v{{version}}</span>
+        <span class="src">数据来源 mhydps.cn{{if showCountTip}} ｜ 名称后数字为该 boss 的配队条数{{/if}} ｜ {{@versionHtml}}</span>
       </div>
 
     {{else}}
@@ -249,7 +251,7 @@
 
       <div class="footer">
         发送 <span class="cmd">#dps视频 {{page}}</span> 获取视频 ｜ <span class="cmd">#dps危战列表</span> 换 boss<br />
-        <span class="src">数据来源 mhydps.cn ｜ 危战按通关秒数排名，越快越靠前 ｜ {{pluginName}} v{{version}}</span>
+        <span class="src">数据来源 mhydps.cn ｜ 危战按通关秒数排名，越快越靠前 ｜ {{@versionHtml}}</span>
       </div>
     {{/if}}
   </div>

@@ -208,6 +208,8 @@
     }
     .footer .cmd { color: #5b7cfa; font-weight: 600; }
     .footer .src { font-size: 12px; color: #a8b4c8; }
+    .footer .ver { color: #d9a441; font-weight: 700; }
+    .footer .dot { color: #c3ccdc; }
 
     /* ---------------- 空状态 ---------------- */
     .empty {
@@ -277,7 +279,7 @@
 
     <div class="footer">
       发送 <span class="cmd">#dps视频 {{page}}</span> 获取视频 ｜ <span class="cmd">#dps帮助</span> 看全部指令<br />
-      <span class="src">数据来源 mhydps.cn ｜ {{pluginName}} v{{version}}</span>
+      <span class="src">数据来源 mhydps.cn ｜ {{@versionHtml}}</span>
     </div>
   </div>
 </body>
