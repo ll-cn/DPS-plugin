@@ -7,7 +7,7 @@ import { CONFIG } from './config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-/** 外置渲染服务失败后的冷却截止时间（避免每次都白等一次超时） */
+/** 外置渲染服务失败后的冷却截止时间 */
 let rsDownUntil = 0
 
 /** 插件自己的 resources 目录（放 html 模板） */
@@ -61,7 +61,7 @@ export function renderFailBrief() {
   return '图片渲染失败：Chromium / puppeteer 不可用，详见机器人日志'
 }
 
-/** 头像 → data URI 的缓存（避免每次渲染都读盘 + 编码） */
+/** 头像 data URI 缓存 */
 const dataUriCache = new Map()
 
 /** 把 file:// 图片转成 data URI */
@@ -88,13 +88,7 @@ function toDataUri(src) {
   }
 }
 
-/**
- * 把数据里所有 face 字段的 file:// 图片内联成 data URI。
- *
- * 为什么需要：外置渲染服务（pupu）内部是 setContent 注入 HTML 的，
- * about:blank 上下文里加载 file:// 图片会被浏览器拦掉（头像全白）。
- * 云崽渲染器是把 HTML 写成文件再 goto(file://)，不受影响，所以只在走外置时转换。
- */
+/** 把 face 字段的 file:// 图片内联成 data URI（外置服务是 setContent 注入，file:// 会被拦） */
 function inlineImages(node, depth = 0) {
   if (!node || typeof node !== 'object' || depth > 6) return
   if (Array.isArray(node)) {
@@ -107,15 +101,7 @@ function inlineImages(node, depth = 0) {
   }
 }
 
-/**
- * 走「外置渲染服务」（如 Karin 的 @karinjs/puppeteer，社区俗称 pupu）
- *
- * 那类服务内部就是 art-template，和本插件的模板天然兼容：
- *   POST {url}/render   { file: 模板路径, data: 模板数据, type, quality, ... }
- * 鉴权头 authorization 用原始 token 即可。
- *
- * @returns {Promise<Buffer|null>} 成功返回图片，失败返回 null（由调用方回退云崽渲染器）
- */
+/** 走外置渲染服务（如 pupu）：POST {url}/render，失败返回 null 由调用方回退 */
 async function renderViaServer(tplFile, data) {
   const rs = CONFIG.renderServer
   const url = `${String(rs.url).replace(/\/+$/, '')}/render`
@@ -123,7 +109,6 @@ async function renderViaServer(tplFile, data) {
   const timer = setTimeout(() => ctrl.abort(), rs.timeout)
 
   try {
-    // 外置服务是 setContent 注入的，file:// 图片会被拦 —— 先内联成 data URI
     const payloadData = JSON.parse(JSON.stringify(data))
     inlineImages(payloadData)
 
@@ -137,8 +122,8 @@ async function renderViaServer(tplFile, data) {
         file: tplFile,
         data: payloadData,
         type: 'jpeg',
-        quality: 92,
-        // 与云崽渲染器保持一致：截 body 元素（模板自身 742px 宽）
+        quality: CONFIG.jpegQuality,
+        // 截 body 元素，与云崽渲染器一致
         selector: 'body',
         fullPage: false,
         encoding: 'binary',
@@ -180,12 +165,12 @@ export async function renderTo(tplFile, name, data) {
   }
 
   const tplData = {
-    // 页脚统一显示版本（模板里用 {{@versionHtml}} 原样输出）
+    // 页脚版本号
     versionHtml: versionHtml(),
     ...data
   }
 
-  // 1) 配了外置渲染服务就优先用它（挂了会在 1 分钟内跳过，避免每次都等超时）
+  // 优先走外置渲染服务
   if (CONFIG.renderServer?.enable && Date.now() > rsDownUntil) {
     const img = await renderViaServer(tplFile, tplData)
     if (img) {
@@ -196,13 +181,15 @@ export async function renderTo(tplFile, name, data) {
     log('warn', `外置渲染服务不可用，已回退云崽渲染器（${name}）`)
   }
 
-  // 2) 统一走云崽自己的渲染器（renderers/），插件不额外起浏览器
+  // 回退云崽渲染器
   try {
     const loader = (await import('../../../lib/renderer/loader.js')).default
     const renderer = loader.getRenderer()
     const img = await renderer.render(name, {
       tplFile,
       saveId: `${name}-${Date.now()}`,
+      // jpeg 质量
+      quality: CONFIG.jpegQuality,
       ...tplData
     })
     if (!img) {

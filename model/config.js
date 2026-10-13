@@ -11,7 +11,8 @@ const DEFAULTS = {
   timeout: 25 * 1000,
   perPage: 5,
   maxPage: 30,
-  lowCost: 2
+  lowCost: 2,
+  jpegQuality: 80
 }
 
 const DEFAULT_ALIAS = {
@@ -24,10 +25,7 @@ const DEFAULT_ALIAS = {
   冰神: '至冬女皇'
 }
 
-/**
- * 外置渲染服务（可选，默认关闭）
- * 用于 Karin 的 @karinjs/puppeteer（社区俗称 pupu）这类基于 art-template 的渲染服务
- */
+/** 外置渲染服务默认值 */
 const DEFAULT_RENDER_SERVER = {
   enable: false,
   url: 'http://127.0.0.1:7006',
@@ -50,7 +48,7 @@ function posNum(v, def) {
   return Number.isFinite(n) && n > 0 ? n : def
 }
 
-/** 归一化「外置渲染服务」配置（token 可能是数字，统一成字符串） */
+/** token 可能是数字，统一成字符串 */
 function normalizeRenderServer(v) {
   const d = DEFAULT_RENDER_SERVER
   if (!v || typeof v !== 'object') return { ...d }
@@ -90,6 +88,10 @@ export function loadConfig(force = false) {
   CONFIG.maxPage = Math.max(1, Math.floor(posNum(raw.maxPage, DEFAULTS.maxPage)))
   CONFIG.lowCost = Number.isFinite(Number(raw.lowCost)) ? Number(raw.lowCost) : DEFAULTS.lowCost
   CONFIG.renderServer = normalizeRenderServer(raw.renderServer)
+  CONFIG.jpegQuality = Math.min(
+    100,
+    Math.max(30, Math.floor(posNum(raw.jpegQuality, DEFAULTS.jpegQuality)))
+  )
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})

@@ -7,6 +7,9 @@ cacheTime: 300000
 # 单次请求超时（毫秒）
 timeout: 25000
 
+# 出图质量（0-100，越低图越小）
+jpegQuality: 80
+
 # 榜单每页显示条数
 perPage: 5
 
@@ -27,15 +30,9 @@ alias:
   雷神: 雷电将军
   冰神: 至冬女皇
 
-# ===================== 外置渲染服务（可选） =====================
-# 如果你跑着 Karin 的 @karinjs/puppeteer（社区俗称 pupu）这类基于 art-template
-# 的渲染服务，可以让插件把图交给它渲染（复用它的常驻浏览器，少占内存）。
-# 不开就保持 enable: false，走云崽自己的渲染器；开启后失败会自动回退。
+# 外置渲染服务（可选，如 Karin 的 pupu），连不上自动回退云崽渲染器
 renderServer:
   enable: false
-  # pupu 的地址（对应它 config.json 里的 http.port）
   url: http://127.0.0.1:7006
-  # 对应 pupu config.json 里的 http.token
   token: ''
-  # 渲染超时（毫秒）
   timeout: 60000
