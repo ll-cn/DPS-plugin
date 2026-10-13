@@ -12,7 +12,8 @@ const DEFAULTS = {
   perPage: 5,
   maxPage: 30,
   lowCost: 2,
-  jpegQuality: 80
+  jpegQuality: 80,
+  textOnly: false
 }
 
 const DEFAULT_ALIAS = {
@@ -49,8 +50,7 @@ function posNum(v, def) {
 }
 
 /** token 可能是数字，统一成字符串 */
-function normalizeRenderServer(v) {
-  const d = DEFAULT_RENDER_SERVER
+function normalizeRenderServer(v) {  const d = DEFAULT_RENDER_SERVER
   if (!v || typeof v !== 'object') return { ...d }
   return {
     enable: v.enable === true || v.enable === 'true',
@@ -92,9 +92,17 @@ export function loadConfig(force = false) {
     100,
     Math.max(30, Math.floor(posNum(raw.jpegQuality, DEFAULTS.jpegQuality)))
   )
+  CONFIG.textOnly = raw.textOnly === true || raw.textOnly === 'true'
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})
+}
+
+/** 是否需要纯文字输出（匿名消息发不了大图） */
+export function needTextOnly(e) {
+  if (CONFIG.textOnly) return true
+  if (e?.anonymous) return true
+  return String(e?.user_id ?? '') === '80000000'
 }
 
 loadConfig(true)

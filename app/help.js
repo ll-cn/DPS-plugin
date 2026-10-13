@@ -1,5 +1,5 @@
 import plugin from '../../../lib/plugins/plugin.js'
-import { CONFIG, loadConfig } from '../model/config.js'
+import { CONFIG, loadConfig, needTextOnly } from '../model/config.js'
 import { LATEST_VER } from '../model/boss.js'
 import { TPL_HELP, renderTo, renderFailBrief } from '../model/render.js'
 import { versionLine } from '../model/version.js'
@@ -19,6 +19,11 @@ export class genshinDpsHelp extends plugin {
 
   async help(e) {
     loadConfig()
+
+    if (needTextOnly(e)) {
+      await e.reply(this.helpText())
+      return true
+    }
 
     const img = await renderTo(TPL_HELP, 'dps-plugin-help', {
       dps: [

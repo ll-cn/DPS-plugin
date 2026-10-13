@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { CONFIG, ALIAS, loadConfig } from '../model/config.js'
+import { CONFIG, ALIAS, loadConfig, needTextOnly } from '../model/config.js'
 import {
   BOSSES,
   LATEST_VER,
@@ -199,6 +199,13 @@ export class genshinDps extends plugin {
     const cards = slice.map((t, i) => toWeizhanCard(t, chars, start + i, start + i + 1))
     const costLabel = maxCost !== null ? (lowOnly ? `低金（≤${maxCost}金）` : `≤${maxCost}金`) : ''
 
+    if (needTextOnly(e)) {
+      await this.saveVideos(e, boss.name, cur, slice, 'teams2')
+      const title = `危战 ${boss.name}${costLabel ? ` ${costLabel}` : ''}`
+      await e.reply(this.textWeizhan(cards, title, cur, totalPage, total))
+      return true
+    }
+
     const img = await renderTo(TPL_WEIZHAN, 'dps-plugin-weizhan', {
       bossName: boss.name,
       ver: boss.ver,
@@ -274,6 +281,16 @@ export class genshinDps extends plugin {
 
     const bossTotal = groups.reduce((n, g) => n + g.bosses.length, 0)
 
+    const textArgs = () => [
+      version ? `【危战 ${version} 版本 boss】` : '【危战 boss 列表】',
+      ...groups.map(g => `【${g.ver}】${g.bosses.map(b => b.name).join('、')}`),
+      '',
+      '发 #dps危战 <boss名> 查看榜单'
+    ]
+    if (needTextOnly(e)) {
+      await e.reply(textArgs().join('\n'))
+      return
+    }
     const img = await renderTo(TPL_WEIZHAN, 'dps-plugin-bosslist', {
       bossListMode: true,
       groups,
@@ -290,20 +307,52 @@ export class genshinDps extends plugin {
       await e.reply(img)
       return
     }
-    // 渲染失败 → 纯文本兜底（附一行原因，免得群里只看到文字没头绪）
-    const lines = groups.map(g => `【${g.ver}】${g.bosses.map(b => b.name).join('、')}`)
-    await e.reply(
-      [
-        version ? `【危战 ${version} 版本 boss】` : '【危战 boss 列表】',
-        ...lines,
-        '',
-        '发 #dps危战 <boss名> 查看榜单',
-        `（${renderFailBrief()}）`
-      ].join('\n')
-    )
+    await e.reply([...textArgs(), `（${renderFailBrief()}）`].join('\n'))
   }
 
   /* ---------------------------- DPS 榜 ---------------------------- */
+
+  /** DPS 榜文字版 */
+  textTeams(cards, charName, maxCost, page, totalPage, total) {
+    const lines = cards.map(c => {
+      const raw = c._raw || {}
+      const cost = Number(raw.cost) || 0
+      const lim = Number(raw.limitcost) || 0
+      const nor = Number(raw.normalcost) || 0
+      const costTxt = nor > 0 ? `${cost}金(限${lim} 常${nor})` : lim ? `${cost}金(限${lim})` : `${cost}金`
+      const tags = (raw.tags || []).filter(Boolean).join(' ')
+      return (
+        `${c.rank}. ${c.members.map(m => m.name).join('+')}\n` +
+        `   ${c.dmgText} ｜ ${costTxt}${tags ? ` ｜ ${tags}` : ''}`
+      )
+    })
+    return [
+      `【${charName} DPS配队】第${page}/${totalPage}页 共${total}队${maxCost !== null ? `（≤${maxCost}金）` : ''}`,
+      '━━━━━━━━━━━━━━',
+      ...lines,
+      '━━━━━━━━━━━━━━',
+      page < totalPage ? `发 #dps配队 ${charName} ${page + 1} 看下一页` : '已是最后一页'
+    ].join('\n')
+  }
+
+  /** 危战榜文字版 */
+  textWeizhan(cards, title, page, totalPage, total) {
+    const lines = cards.map(c => {
+      const raw = c._raw || {}
+      const cost = Number(raw.cost) || 0
+      return (
+        `${c.rank}. ${c.members.map(m => m.name).join('+')}\n` +
+        `   ${c.speedText} ｜ ${cost}金`
+      )
+    })
+    return [
+      `【${title}】第${page}/${totalPage}页 共${total}队`,
+      '━━━━━━━━━━━━━━',
+      ...lines,
+      '━━━━━━━━━━━━━━',
+      page < totalPage ? `发 #dps危战 ${title} ${page + 1} 看下一页` : '已是最后一页'
+    ].join('\n')
+  }
 
   async teams(e) {
     loadConfig()
@@ -337,6 +386,12 @@ export class genshinDps extends plugin {
     const slice = list.slice((cur - 1) * CONFIG.perPage, cur * CONFIG.perPage)
 
     const cards = slice.map((t, i) => toCard(t, chars, (cur - 1) * CONFIG.perPage + i))
+
+    if (needTextOnly(e)) {
+      await this.saveVideos(e, charName, cur, slice)
+      await e.reply(this.textTeams(cards, charName, maxCost, cur, totalPage, total))
+      return true
+    }
 
     const img = await renderTo(TPL_TEAMS, 'dps-plugin-teams', {
       title: `${charName} DPS配队`,

@@ -10,6 +10,9 @@ timeout: 25000
 # 出图质量（0-100，越低图越小）
 jpegQuality: 80
 
+# 只发文字不发图（匿名群、QQ官方机器人通道发不了大图时用）
+textOnly: false
+
 # 榜单每页显示条数
 perPage: 5
 
