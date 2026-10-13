@@ -23,7 +23,8 @@ import {
   PLUGIN_ROOT,
   PLUGIN_DIR_NAME,
   renderTo,
-  renderFailMsg
+  renderFailMsg,
+  renderFailBrief
 } from '../model/render.js'
 
 const execFileAsync = promisify(execFile)
@@ -287,14 +288,15 @@ export class genshinDps extends plugin {
       await e.reply(img)
       return
     }
-    // 渲染失败 → 纯文本兜底
+    // 渲染失败 → 纯文本兜底（附一行原因，免得群里只看到文字没头绪）
     const lines = groups.map(g => `【${g.ver}】${g.bosses.map(b => b.name).join('、')}`)
     await e.reply(
       [
         version ? `【危战 ${version} 版本 boss】` : '【危战 boss 列表】',
         ...lines,
         '',
-        '发 #dps危战 <boss名> 查看榜单'
+        '发 #dps危战 <boss名> 查看榜单',
+        `（${renderFailBrief()}）`
       ].join('\n')
     )
   }

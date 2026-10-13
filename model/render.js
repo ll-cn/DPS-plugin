@@ -50,6 +50,13 @@ export function renderFailMsg() {
   return '😵 图片生成失败，请检查渲染后端（puppeteer/shotium）是否正常。'
 }
 
+/** 渲染失败的一行简短提示（用在「已降级为文字」的场景，避免群里只看到文字却没头绪） */
+export function renderFailBrief() {
+  const miss = missingTplList()
+  if (miss.length) return `图片渲染失败：缺模板 ${miss.join('、')}，请克隆整个仓库`
+  return '图片渲染失败：Chromium / puppeteer 不可用，详见机器人日志'
+}
+
 /**
  * 通用渲染
  * @param {string} tplFile 模板绝对路径
@@ -63,6 +70,7 @@ export async function renderTo(tplFile, name, data) {
       log('error', `模板不存在：${tplFile}`)
       return null
     }
+    // 统一走云崽自己的渲染器（renderers/），插件不额外起浏览器
     const loader = (await import('../../../lib/renderer/loader.js')).default
     const renderer = loader.getRenderer()
     const img = await renderer.render(name, {

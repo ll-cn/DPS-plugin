@@ -1,7 +1,7 @@
 import plugin from '../../../lib/plugins/plugin.js'
 import { CONFIG, loadConfig } from '../model/config.js'
 import { LATEST_VER } from '../model/boss.js'
-import { TPL_HELP, renderTo } from '../model/render.js'
+import { TPL_HELP, renderTo, renderFailBrief } from '../model/render.js'
 import { versionLine } from '../model/version.js'
 
 const PLUGIN_NAME = '原神DPS帮助'
@@ -43,8 +43,8 @@ export class genshinDpsHelp extends plugin {
       latestVer: LATEST_VER
     })
 
-    // 渲染失败 → 纯文本兜底
-    await e.reply(img || this.helpText())
+    // 渲染失败 → 纯文本兜底（附一行原因）
+    await e.reply(img || [this.helpText(), '', `（${renderFailBrief()}）`].join('\n'))
     return true
   }
 
