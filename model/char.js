@@ -69,3 +69,59 @@ export function loadChars() {
   charCache = { at: now, map }
   return map
 }
+
+/** 角色别名表可能存在的位置（miao-plugin 的 meta-gs/character/alias.js） */
+const ALIAS_FILES = [
+  path.join(ROOT, 'plugins', 'miao-plugin', 'resources', 'meta-gs', 'character', 'alias.js'),
+  path.join(ROOT, 'plugins', 'lolomi-calc', 'resources', 'meta-gs', 'character', 'alias.js'),
+  path.join(ROOT, 'data', 'miao-plugin', 'resources', 'meta-gs', 'character', 'alias.js')
+]
+
+const norm = s => String(s ?? '').trim().toLowerCase().replace(/\s+/g, '')
+
+let aliasCache = null
+
+/**
+ * 角色别名表：俗称 → 正式名（如 风仙 → 薇斯纳）。
+ * 直接读 miao-plugin 的 alias.js（`export const alias = { 薇斯纳: 'Vesna,威斯纳,风仙,...' }`），
+ * 这样俗称不用插件自己维护；读不到就返回空表（只认正式名）。
+ * @returns {Promise<Map<string,string>>}
+ */
+export async function loadCharAlias() {
+  if (aliasCache) return aliasCache
+
+  const map = new Map()
+  for (const file of ALIAS_FILES) {
+    try {
+      if (!fs.existsSync(file)) continue
+      const mod = await import(pathToFileURL(file).href)
+      const raw = mod?.alias ?? mod?.default
+      if (!raw || typeof raw !== 'object') continue
+      for (const [name, aliases] of Object.entries(raw)) {
+        const real = String(name).trim()
+        if (!real) continue
+        for (const a of String(aliases ?? '').split(',')) {
+          const k = norm(a)
+          if (k && !map.has(k)) map.set(k, real)
+        }
+      }
+      if (map.size) {
+        log('info', `角色别名载入：${map.size} 条（来源 ${file}）`)
+        break
+      }
+    } catch (err) {
+      log('warn', `读取角色别名失败：${err?.message ?? err}`)
+    }
+  }
+
+  if (!map.size) log('warn', '未找到 miao-plugin 角色别名表，俗称将无法识别')
+  aliasCache = map
+  return map
+}
+
+/** 把俗称解析成正式角色名（别名表里没有就原样返回） */
+export function resolveCharAlias(name, aliasMap) {
+  const s = String(name ?? '').trim()
+  if (!s || !aliasMap?.size) return s
+  return aliasMap.get(norm(s)) || s
+}

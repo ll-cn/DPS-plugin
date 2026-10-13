@@ -13,11 +13,11 @@ import {
   findBoss
 } from '../model/boss.js'
 import { caches, fetchData, fetchTeams } from '../model/api.js'
-import { loadChars } from '../model/char.js'
+import { loadChars, loadCharAlias, resolveCharAlias } from '../model/char.js'
 import { toCard, toWeizhanCard, dmgText } from '../model/card.js'
 import { log } from '../model/log.js'
 // 注意：本文件已有 PLUGIN_NAME（插件注册名），这里给仓库名起个别名避免重名
-import { PLUGIN_NAME as PKG_NAME, VERSION } from '../model/version.js'
+import { PLUGIN_NAME as PKG_NAME, VERSION, REPO_URL } from '../model/version.js'
 import {
   TPL_TEAMS,
   TPL_WEIZHAN,
@@ -47,6 +47,49 @@ async function gitShortRev() {
   }
 }
 
+/** 可以当仓库根目录用（有 .git 才算） */
+function isGitRepo() {
+  try {
+    return fs.existsSync(path.join(PLUGIN_ROOT, '.git'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 读 git 提交历史（更新日志）
+ * @param {number} limit 最多读多少条
+ * @param {string} since 读到这个短提交号为止（只取它之后的，用于「本次更新」）
+ * @returns {Promise<string[]>} 形如 ["[2026-10-13 20:30:18] fix: 修复xxx", ...]
+ */
+async function readGitLog(limit = 50, since = '') {
+  const { stdout } = await execFileAsync(
+    'git',
+    ['log', `-${limit}`, '--pretty=%h||[%cd] %s', '--date=format:%F %T'],
+    { cwd: PLUGIN_ROOT, timeout: 20000 }
+  )
+  const out = []
+  for (const line of String(stdout ?? '').split('\n')) {
+    const [hash, text] = line.split('||')
+    if (!hash || !text) continue
+    if (since && hash.trim() === since) break
+    if (text.includes('Merge branch')) continue
+    out.push(text.trim())
+  }
+  return out
+}
+
+/** 把更新日志发成合并转发（和云崽 #更新日志 一样），失败回退纯文本 */
+async function replyGitLog(e, title, lines) {
+  const msgs = [title, ...lines, REPO_URL]
+  try {
+    await e.reply(Bot.makeForwardArray(msgs, { nickname: '更新日志', user_id: Bot.uin }))
+  } catch (err) {
+    log('warn', `合并转发失败，改用纯文本：${err?.message ?? err}`)
+    await e.reply(msgs.join('\n'))
+  }
+}
+
 const PLUGIN_NAME = '原神DPS'
 
 export class genshinDps extends plugin {
@@ -58,13 +101,17 @@ export class genshinDps extends plugin {
       priority: 500,
       rule: [
         { reg: /^[#＃/／]?\s*dps(配队)?视频(?=$|[\s])/i, fnc: 'video' },
-        { reg: /^[#＃/／]?\s*(dps)?危战(列表|一览|boss|全部)(?=$|[\s])/i, fnc: 'bossList' },
-        { reg: /^[#＃/／]?\s*(dps)?危战(?=$|[\s])/i, fnc: 'weizhan' },
-        { reg: /^[#＃/／]?\s*dps(配队|队伍榜|榜)(?=$|[\s])/i, fnc: 'teams' },
-        { reg: /^[#＃/／]?\s*dps(角色|配队榜|char)(?=$|[\s])/i, fnc: 'teams' },
-        { reg: /^[#＃/／]?\s*dps(刷新数据|刷新)(?=$|[\s])/i, fnc: 'refresh' },
+        { reg: /^[#＃/／]?\s*(dps)?[\d.]*\s*危战(列表|一览|boss|全部)/i, fnc: 'bossList' },
+        { reg: /^[#＃/／]?\s*(dps)?[\d.]*\s*危战/i, fnc: 'weizhan' },
+        { reg: /^[#＃/／]?\s*dps(更新日志|更新说明|changelog)(?=$|[\s])/i, fnc: 'changelog' },
         { reg: /^[#＃/／]?\s*dps强制更新(?=$|[\s])/i, fnc: 'forceUpdate' },
-        { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s]|数据)/i, fnc: 'update' }
+        { reg: /^[#＃/／]?\s*dps(刷新数据|刷新)(?=$|[\s])/i, fnc: 'refresh' },
+        { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s]|数据)/i, fnc: 'update' },
+        // 兜底：其余 #dps 开头的都当角色榜，支持 #dps风仙排行6金 / #dps12金风仙排行 这类写法
+        {
+          reg: /^[#＃/／]?\s*dps(?!\s*(帮助|说明|help|刷新|更新|升级|update|强制|危战))/i,
+          fnc: 'teams'
+        }
       ]
     })
   }
@@ -73,47 +120,70 @@ export class genshinDps extends plugin {
 
   /** 解析 `#dps危战 <boss|版本号> [页数|低金|N金]` */
   parseWeizhanArgs(e) {
-    const rest = String(e?.msg ?? e?.raw_message ?? '')
+    // 宽松解析：#dps危战 游雪的护刃 2 ｜ #7.1危战第二间排行 ｜ #7.1危战第二间8金排行
+    let s = String(e?.msg ?? e?.raw_message ?? '')
       .replace(/^[#＃/／]\s*/, '')
-      .replace(/^(dps)?危战/i, '')
-      .trim()
+      .replace(/^dps/i, '')
+      .replace(/危战|排行|排名|榜单|列表|榜/gi, ' ')
 
     let page = 1
     let lowOnly = false
     let maxCost = null
-    let bossKey = rest
     let version = null
+    let room = null
 
-    const tokens = rest.split(/\s+/).filter(Boolean)
-    const kept = []
-    for (const tk of tokens) {
-      if (/^(低金|低配)$/.test(tk)) {
-        lowOnly = true
-        continue
-      }
-      const cm = tk.match(/^(\d+)\s*金$/)
-      if (cm) {
-        maxCost = Number.parseInt(cm[1], 10)
-        continue
-      }
-      // 版本号：7.0 / v7.0 / 版本7.0
-      const vm = tk.match(/^(?:v|版本)?\s*(\d+\.\d+)$/i)
-      if (vm) {
-        version = vm[1]
-        continue
-      }
-      if (/^\d+$/.test(tk) && kept.length) {
-        // boss 名之后的纯数字 → 页码
-        page = Number.parseInt(tk, 10)
-        continue
-      }
-      kept.push(tk)
+    // 第N间
+    const rm = s.match(/第\s*([一二两三四五六七八九十\d]+)\s*间/)
+    if (rm) {
+      const CN = { 一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 }
+      room = /^\d+$/.test(rm[1]) ? Number.parseInt(rm[1], 10) : (CN[rm[1]] ?? null)
+      s = s.replace(rm[0], ' ')
     }
-    bossKey = kept.join(' ').trim()
+
+    // N金
+    const cm = s.match(/(\d+)\s*金/)
+    if (cm) {
+      maxCost = Number.parseInt(cm[1], 10)
+      s = s.replace(cm[0], ' ')
+    }
+
+    // 低金
+    if (/低金|低配/.test(s)) {
+      lowOnly = true
+      s = s.replace(/低金|低配/g, ' ')
+    }
+
+    // 版本号：7.0 / v7.0 / 版本7.0
+    const vm = s.match(/(?:v|版本)?\s*(\d+\.\d+)/i)
+    if (vm) {
+      version = vm[1]
+      s = s.replace(vm[0], ' ')
+    }
+
+    // 剩下的独立数字当页码（取最后一个）
+    const nums = [...s.matchAll(/(?:^|\s)(\d+)(?=\s|$)/g)]
+    if (nums.length) {
+      const last = nums[nums.length - 1]
+      const n = Number.parseInt(last[1], 10)
+      if (n >= 1 && n <= CONFIG.maxPage) page = n
+      s = `${s.slice(0, last.index)} ${s.slice(last.index + last[0].length)}`
+    }
+
+    const bossKey = s.replace(/\s+/g, ' ').trim()
 
     // 版本号先校验，写了错的直接报，别静默忽略
     if (version && !BOSS_BY_VER.has(version)) {
       return { badVersion: version, versions: [...BOSS_BY_VER.keys()] }
+    }
+
+    // 「第N间」→ 该版本第 N 个 boss（网站上的排列顺序，同版本 id 降序）
+    if (room !== null) {
+      const ver = version || LATEST_VER
+      const bosses = BOSS_BY_VER.get(ver) || []
+      const boss = bosses[room - 1]
+      if (!boss) return { badRoom: room, ver, maxRoom: bosses.length }
+      if (lowOnly && maxCost === null) maxCost = CONFIG.lowCost
+      return { boss, version: ver, page, maxCost, lowOnly }
     }
 
     // 只写了版本号 → 出该版本的 boss 列表
@@ -154,8 +224,11 @@ export class genshinDps extends plugin {
       return true
     }
 
-    if (parsed.version) {
-      await this.showBossList(e, parsed.version)
+    if (parsed.badRoom) {
+      await e.reply(
+        `${parsed.ver} 只有 ${parsed.maxRoom} 个 boss，没有「第 ${parsed.badRoom} 间」。\n` +
+          `发 #dps危战 ${parsed.ver} 看该版本的 boss 一览。`
+      )
       return true
     }
 
@@ -165,6 +238,12 @@ export class genshinDps extends plugin {
         `没有找到 boss「${parsed.notFound}」。\n发 #dps危战列表 看全部 boss。` +
           (similar.length ? `\n你可能想找：${similar.join('、')}` : '')
       )
+      return true
+    }
+
+    // 只写了版本号（没有具体 boss）→ 出该版本的 boss 一览
+    if (!parsed.boss) {
+      await this.showBossList(e, parsed.version)
       return true
     }
 
@@ -367,7 +446,10 @@ export class genshinDps extends plugin {
     }
 
     const chars = loadChars()
-    const { charName, page, maxCost } = parsed
+    const aliasMap = await loadCharAlias()
+    // config.yaml 的自定义别名优先，其次用 miao-plugin 的俗称表（如 风仙 → 薇斯纳）
+    const charName = resolveCharAlias(ALIAS[parsed.charName] || parsed.charName, aliasMap)
+    const { page, maxCost } = parsed
 
     let list = r.data.filter(t => (t?.members || []).some(m => String(m?.charId) === charName))
     if (maxCost !== null) list = list.filter(t => (Number(t?.cost) || 0) <= maxCost)
@@ -419,45 +501,43 @@ export class genshinDps extends plugin {
 
   /** 解析 `#dps配队 <角色> [页数|N金]` */
   parseArgs(e) {
-    const rest = String(e?.msg ?? e?.raw_message ?? '')
+    // 宽松解析：词序、省略都不敏感
+    //   #dps配队 玛薇卡 2 ｜ #dps风仙排行6金 ｜ #dps12金风仙排行 ｜ #dps配队 玛薇卡 5金
+    let s = String(e?.msg ?? e?.raw_message ?? '')
       .replace(/^[#＃/／]\s*/, '')
-      .replace(/^dps(配队|队伍榜|榜|角色|配队榜|char)/i, '')
-      .trim()
+      .replace(/^dps/i, '')
+      .replace(/配队|队伍榜|配队榜|角色|排行|排名|榜单|列表|char/gi, ' ')
 
-    if (!rest) {
-      e.reply('用法：#dps配队 <角色名> [页数]\n例：#dps配队 薇斯纳  或  #dps配队 玛薇卡 2')
-      return null
-    }
-
-    let name = rest
-    let page = 1
     let maxCost = null
+    let page = 1
 
-    // 结尾的纯数字：可能是页码，也可能是金数上限
-    const m = rest.match(/^(.*?)[\s]+(\d+)$/)
-    if (m) {
-      name = m[1].trim()
-      const num = Number.parseInt(m[2], 10)
-      if (/金/.test(m[1])) {
-        maxCost = num
-        name = m[1].replace(/\d+金?/g, '').trim()
-      } else if (num >= 1 && num <= CONFIG.maxPage) {
-        page = num
-      }
-    }
-    // 单独的金数写法：#dps配队 薇斯纳 5金
-    const cm = name.match(/^(.+?)\s*(\d+)\s*金$/)
+    // N金 可以出现在任何位置
+    const cm = s.match(/(\d+)\s*金/)
     if (cm) {
-      name = cm[1].trim()
-      maxCost = Number.parseInt(cm[2], 10)
+      maxCost = Number.parseInt(cm[1], 10)
+      s = s.replace(cm[0], ' ')
     }
 
-    name = ALIAS[name] || name
-    if (!name) {
-      e.reply('用法：#dps配队 <角色名> [页数]')
+    // 剩下的独立数字当页码（取最后一个）
+    const nums = [...s.matchAll(/(?:^|\s)(\d+)(?=\s|$)/g)]
+    if (nums.length) {
+      const last = nums[nums.length - 1]
+      const n = Number.parseInt(last[1], 10)
+      if (n >= 1 && n <= CONFIG.maxPage) page = n
+      s = `${s.slice(0, last.index)} ${s.slice(last.index + last[0].length)}`
+    }
+
+    const charName = s.replace(/\s+/g, ' ').trim()
+    if (!charName) {
+      e.reply(
+        [
+          '用法：#dps配队 <角色名> [页数|N金]',
+          '例：#dps配队 薇斯纳 ｜ #dps风仙排行6金 ｜ #dps12金风仙排行'
+        ].join('\n')
+      )
       return null
     }
-    return { charName: name, page, maxCost }
+    return { charName, page, maxCost }
   }
 
   /* ---------------------------- 视频 ---------------------------- */
@@ -674,10 +754,47 @@ export class genshinDps extends plugin {
           '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。'
         ].join('\n')
       )
+      // 顺便把本次拉到的提交发出来（合并转发，和云崽 #更新日志 一样）
+      try {
+        const lines = await readGitLog(50, before)
+        if (lines.length) await replyGitLog(e, `${PKG_NAME} 本次更新，共 ${lines.length} 条`, lines)
+      } catch {
+        /* 日志失败不影响更新结果 */
+      }
       return true
     } finally {
       updating = false
     }
+  }
+
+  /* ---------------------------- 更新日志 ---------------------------- */
+
+  async changelog(e) {
+    loadConfig()
+
+    if (!isGitRepo()) {
+      await e.reply(
+        [
+          '这个插件不是用 git 克隆安装的，读不到更新日志。',
+          '用下面的命令重装一次即可：',
+          `  git clone ${REPO_URL} "plugins/${PLUGIN_DIR_NAME}"`
+        ].join('\n')
+      )
+      return true
+    }
+
+    try {
+      const lines = await readGitLog(50)
+      if (!lines.length) {
+        await e.reply('暂无更新日志。')
+        return true
+      }
+      await replyGitLog(e, `${PKG_NAME} 更新日志，共 ${lines.length} 条`, lines)
+    } catch (err) {
+      log('error', `读取更新日志失败：${err?.message ?? err}`)
+      await e.reply('😵 读取更新日志失败，请查看机器人日志。')
+    }
+    return true
   }
 }
 
