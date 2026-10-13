@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { log } from './log.js'
@@ -10,18 +11,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 /** 外置渲染服务失败后的冷却截止时间 */
 let rsDownUntil = 0
 
-/** 插件自己的 resources 目录（放 html 模板） */
 export const RES_DIR = path.join(__dirname, '..', 'resources')
 export const TPL_TEAMS = path.join(RES_DIR, 'teams.html')
 export const TPL_WEIZHAN = path.join(RES_DIR, 'weizhan.html')
 export const TPL_HELP = path.join(RES_DIR, 'help.html')
 
-/** 插件根目录（克隆到的目录，随目录名变化） */
 export const PLUGIN_ROOT = path.dirname(RES_DIR)
-/** 插件目录名 */
 export const PLUGIN_DIR_NAME = path.basename(PLUGIN_ROOT)
 
-/** 缺失的模板文件列表（空数组 = 都在） */
 export function missingTplList() {
   return [
     [TPL_TEAMS, 'resources/teams.html'],
@@ -38,7 +35,6 @@ export function missingTplList() {
     .map(([, n]) => n)
 }
 
-/** 渲染失败时给用户的提示（区分「模板缺失」和「渲染后端问题」） */
 export function renderFailMsg() {
   const miss = missingTplList()
   if (miss.length) {
@@ -54,17 +50,76 @@ export function renderFailMsg() {
   return '😵 图片生成失败，请检查渲染后端（puppeteer/shotium）是否正常。'
 }
 
-/** 渲染失败的一行简短提示（用在「已降级为文字」的场景，避免群里只看到文字却没头绪） */
 export function renderFailBrief() {
   const miss = missingTplList()
   if (miss.length) return `图片渲染失败：缺模板 ${miss.join('、')}，请克隆整个仓库`
   return '图片渲染失败：Chromium / puppeteer 不可用，详见机器人日志'
 }
 
-/** 头像 data URI 缓存 */
+/** 系统自带浏览器候选路径 */
+function findSystemBrowser() {
+  const home = os.homedir()
+  const list =
+    process.platform === 'win32'
+      ? [
+          'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+          'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+          path.join(home, 'AppData', 'Local', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+          'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+          'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+          path.join(home, 'AppData', 'Local', 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+        ]
+      : process.platform === 'darwin'
+        ? [
+            '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+            '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+            '/Applications/Chromium.app/Contents/MacOS/Chromium'
+          ]
+        : [
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/microsoft-edge'
+          ]
+  for (const p of list) {
+    try {
+      if (fs.existsSync(p)) return p
+    } catch {
+      /* 忽略 */
+    }
+  }
+  return ''
+}
+
+/**
+ * 给渲染后端补上系统浏览器路径。
+ * getRenderer() 默认返回 loader 本身，真正的后端在 script_renderers / noscript_renderers 里，
+ * 所以三种结构都覆盖。只改内存里的实例，不动框架文件与配置。
+ */
+function patchBrowser(renderer, browser) {
+  let patched = false
+  const seen = new Set()
+  const visit = node => {
+    if (!node || typeof node !== 'object' || seen.has(node)) return
+    seen.add(node)
+    const conf = node.config
+    if (conf && typeof conf === 'object' && !conf.executablePath && !conf.wsEndpoint) {
+      conf.executablePath = browser
+      node.browser = false
+      patched = true
+    }
+    for (const key of ['script_renderers', 'noscript_renderers']) {
+      if (Array.isArray(node[key])) node[key].forEach(visit)
+    }
+    if (node.renderers instanceof Map) for (const v of node.renderers.values()) visit(v)
+  }
+  visit(renderer)
+  return patched
+}
+
 const dataUriCache = new Map()
 
-/** 把 file:// 图片转成 data URI */
+/** file:// 图片转 data URI（外置服务是 setContent 注入，file:// 会被浏览器拦掉） */
 function toDataUri(src) {
   if (typeof src !== 'string' || !src.startsWith('file:')) return src
   if (dataUriCache.has(src)) return dataUriCache.get(src)
@@ -88,7 +143,6 @@ function toDataUri(src) {
   }
 }
 
-/** 把 face 字段的 file:// 图片内联成 data URI（外置服务是 setContent 注入，file:// 会被拦） */
 function inlineImages(node, depth = 0) {
   if (!node || typeof node !== 'object' || depth > 6) return
   if (Array.isArray(node)) {
@@ -101,7 +155,7 @@ function inlineImages(node, depth = 0) {
   }
 }
 
-/** 走外置渲染服务（如 pupu）：POST {url}/render，失败返回 null 由调用方回退 */
+/** 外置渲染服务（如 pupu）：POST {url}/render，失败返回 null 由调用方回退 */
 async function renderViaServer(tplFile, data) {
   const rs = CONFIG.renderServer
   const url = `${String(rs.url).replace(/\/+$/, '')}/render`
@@ -123,7 +177,6 @@ async function renderViaServer(tplFile, data) {
         data: payloadData,
         type: 'jpeg',
         quality: CONFIG.jpegQuality,
-        // 截 body 元素，与云崽渲染器一致
         selector: 'body',
         fullPage: false,
         encoding: 'binary',
@@ -151,13 +204,6 @@ async function renderViaServer(tplFile, data) {
   }
 }
 
-/**
- * 通用渲染
- * @param {string} tplFile 模板绝对路径
- * @param {string} name 渲染器任务名（用于 temp/html 目录与日志）
- * @param {object} data 模板数据
- * @returns {Promise<Buffer|Buffer[]|null>}
- */
 export async function renderTo(tplFile, name, data) {
   if (!fs.existsSync(tplFile)) {
     log('error', `模板不存在：${tplFile}`)
@@ -165,12 +211,10 @@ export async function renderTo(tplFile, name, data) {
   }
 
   const tplData = {
-    // 页脚版本号
     versionHtml: versionHtml(),
     ...data
   }
 
-  // 优先走外置渲染服务
   if (CONFIG.renderServer?.enable && Date.now() > rsDownUntil) {
     const img = await renderViaServer(tplFile, tplData)
     if (img) {
@@ -181,24 +225,44 @@ export async function renderTo(tplFile, name, data) {
     log('warn', `外置渲染服务不可用，已回退云崽渲染器（${name}）`)
   }
 
-  // 回退云崽渲染器
+  let loader
   try {
-    const loader = (await import('../../../lib/renderer/loader.js')).default
-    const renderer = loader.getRenderer()
-    const img = await renderer.render(name, {
-      tplFile,
-      saveId: `${name}-${Date.now()}`,
-      // jpeg 质量
-      quality: CONFIG.jpegQuality,
-      ...tplData
-    })
-    if (!img) {
-      log('error', `渲染返回空：${name}`)
-      return null
-    }
-    return img
+    loader = (await import('../../../lib/renderer/loader.js')).default
   } catch (err) {
-    log('error', `渲染失败（${name}）：${err?.stack ?? err}`)
+    log('error', `渲染器加载失败（${name}）：${err?.message ?? err}`)
     return null
   }
+
+  const payload = {
+    tplFile,
+    saveId: `${name}-${Date.now()}`,
+    quality: CONFIG.jpegQuality,
+    ...tplData
+  }
+
+  const shot = async () => {
+    try {
+      return (await loader.getRenderer().render(name, payload)) || null
+    } catch (err) {
+      log('warn', `渲染异常（${name}）：${err?.message ?? err}`)
+      return null
+    }
+  }
+
+  let img = await shot()
+
+  // 老版 puppeteer 找不到自带 Chromium 会直接失败，补系统浏览器再试一次
+  if (!img) {
+    const browser = findSystemBrowser()
+    if (browser && patchBrowser(loader.getRenderer(), browser)) {
+      log('mark', `渲染失败，改用系统浏览器重试：${browser}`)
+      img = await shot()
+    }
+  }
+
+  if (!img) {
+    log('error', `渲染返回空：${name}`)
+    return null
+  }
+  return img
 }

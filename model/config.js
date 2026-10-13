@@ -98,11 +98,9 @@ export function loadConfig(force = false) {
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})
 }
 
-/** 是否需要纯文字输出（匿名消息发不了大图） */
-export function needTextOnly(e) {
-  if (CONFIG.textOnly) return true
-  if (e?.anonymous) return true
-  return String(e?.user_id ?? '') === '80000000'
+/** 是否强制纯文字输出（config.yaml 的 textOnly 开关，默认关） */
+export function needTextOnly() {
+  return CONFIG.textOnly === true
 }
 
 loadConfig(true)

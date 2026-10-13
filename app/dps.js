@@ -27,6 +27,7 @@ import {
   renderFailMsg,
   renderFailBrief
 } from '../model/render.js'
+import { sendImage } from '../model/send.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -222,7 +223,7 @@ export class genshinDps extends plugin {
     }
 
     await this.saveVideos(e, boss.name, cur, slice, 'teams2')
-    await e.reply(img)
+    await sendImage(e, img)
     return true
   }
 
@@ -304,7 +305,7 @@ export class genshinDps extends plugin {
     })
 
     if (img) {
-      await e.reply(img)
+      await sendImage(e, img)
       return
     }
     await e.reply([...textArgs(), `（${renderFailBrief()}）`].join('\n'))
@@ -412,7 +413,7 @@ export class genshinDps extends plugin {
     // 记下本页序号对应的视频链接，供 #dps视频 用
     await this.saveVideos(e, charName, cur, slice)
 
-    await e.reply(img)
+    await sendImage(e, img)
     return true
   }
 
