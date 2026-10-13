@@ -36,7 +36,8 @@ export class genshinDpsHelp extends plugin {
       common: [
         { cmd: '#dps视频 <序号>', desc: '取榜单第 N 条的 B 站视频链接' },
         { cmd: '#dps刷新', desc: '重新拉取榜单数据（仅主人）' },
-        { cmd: '#dps更新', desc: '更新插件版本（从 GitHub 拉取，仅主人）' }
+        { cmd: '#dps更新', desc: '更新插件版本（从 GitHub 拉取，仅主人）' },
+        { cmd: '#dps强制更新', desc: '更新失败时用它，丢弃本地改动强拉最新（仅主人）' }
       ],
       perPage: CONFIG.perPage,
       cacheMin: Math.round(CONFIG.cacheTime / 60000),
@@ -60,6 +61,7 @@ export class genshinDpsHelp extends plugin {
       '#dps视频 <序号>         取该名次视频',
       '#dps刷新                刷新榜单数据（仅主人）',
       '#dps更新                更新插件版本（仅主人）',
+      '#dps强制更新            更新失败时用，丢弃本地改动强拉（仅主人）',
       '━━━━━━━━━━━━━━',
       versionLine()
     ].join('\n')

@@ -15,6 +15,7 @@ import {
 import { caches, fetchData, fetchTeams } from '../model/api.js'
 import { loadChars } from '../model/char.js'
 import { toCard, toWeizhanCard, dmgText } from '../model/card.js'
+import { log } from '../model/log.js'
 // 注意：本文件已有 PLUGIN_NAME（插件注册名），这里给仓库名起个别名避免重名
 import { PLUGIN_NAME as PKG_NAME, VERSION } from '../model/version.js'
 import {
@@ -61,6 +62,7 @@ export class genshinDps extends plugin {
         { reg: /^[#＃/／]?\s*dps(配队|队伍榜|榜)(?=$|[\s])/i, fnc: 'teams' },
         { reg: /^[#＃/／]?\s*dps(角色|配队榜|char)(?=$|[\s])/i, fnc: 'teams' },
         { reg: /^[#＃/／]?\s*dps(刷新数据|刷新)(?=$|[\s])/i, fnc: 'refresh' },
+        { reg: /^[#＃/／]?\s*dps强制更新(?=$|[\s])/i, fnc: 'forceUpdate' },
         { reg: /^[#＃/／]?\s*dps(更新|升级|update)(?=$|[\s]|数据)/i, fnc: 'update' }
       ]
     })
@@ -495,13 +497,26 @@ export class genshinDps extends plugin {
    * 仅主人可用；要求插件是用 git clone 安装的
    */
   async update(e) {
+    return this.pluginUpdate(e, false)
+  }
+
+  /** #dps强制更新 —— 丢弃本地改动，直接对齐远程分支（用于 pull 冲突时） */
+  async forceUpdate(e) {
+    return this.pluginUpdate(e, true)
+  }
+
+  /**
+   * 插件更新
+   * @param {boolean} force 强制模式：fetch + reset --hard（会丢弃本地改动，配置文件除外）
+   */
+  async pluginUpdate(e, force) {
     loadConfig()
 
     // 「更新数据」不是本命令的职责 —— 引导到 #dps刷新，避免两个功能混淆
     const rest = String(e?.msg ?? '')
-      .replace(/^[#＃/／]?\s*dps(更新|升级|update)/i, '')
+      .replace(/^[#＃/／]?\s*dps(强制更新|更新|升级|update)/i, '')
       .trim()
-    if (/数据|榜单|缓存|排行/.test(rest)) {
+    if (!force && /数据|榜单|缓存|排行/.test(rest)) {
       await e.reply(
         [
           '#dps更新 是「更新插件版本」（从 GitHub 拉取代码）。',
@@ -538,46 +553,69 @@ export class genshinDps extends plugin {
     updating = true
     try {
       const before = await gitShortRev()
-      let out = ''
+
+      // 强制更新会丢弃本地改动，用户自己的配置文件先留一份
+      const cfgFile = path.join(PLUGIN_ROOT, 'config', 'config.yaml')
+      let cfgBackup = null
+      if (force) {
+        try {
+          cfgBackup = fs.readFileSync(cfgFile, 'utf8')
+        } catch {
+          cfgBackup = null
+        }
+      }
 
       try {
-        const r = await execFileAsync('git', ['pull', '--ff-only'], {
-          cwd: PLUGIN_ROOT,
-          timeout: 60000
-        })
-        out = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim()
+        if (force) {
+          const { stdout: br } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+            cwd: PLUGIN_ROOT,
+            timeout: 15000
+          })
+          const branch = br.trim() || 'main'
+          await execFileAsync('git', ['fetch', '--all', '--prune'], {
+            cwd: PLUGIN_ROOT,
+            timeout: 60000
+          })
+          await execFileAsync('git', ['reset', '--hard', `origin/${branch}`], {
+            cwd: PLUGIN_ROOT,
+            timeout: 30000
+          })
+        } else {
+          await execFileAsync('git', ['pull', '--ff-only'], {
+            cwd: PLUGIN_ROOT,
+            timeout: 60000
+          })
+        }
       } catch (err) {
-        const detail = String(err?.stderr || err?.stdout || err?.message || err)
-          .trim()
-          .slice(0, 300)
-        await e.reply(
-          [
-            '😵 更新失败。',
-            '',
-            '常见原因：',
-            '· 网络不通 —— git 需要走代理（本机 mihomo 是 127.0.0.1:10090）',
-            '· 插件目录里改过文件，没法快进合并',
-            '',
-            `原始信息：${detail}`,
-            `插件目录：${PLUGIN_ROOT}`
-          ].join('\n')
-        )
+        // 详细原因只写日志；群里回一句就好（不刷屏、也不暴露本机环境信息）
+        const detail = String(err?.stderr || err?.stdout || err?.message || err).trim()
+        log('error', `更新失败(${force ? '强制' : '普通'})：${detail.slice(0, 400)}｜目录 ${PLUGIN_ROOT}`)
+        await e.reply(force ? '😵 强制更新失败，请查看机器人日志。' : '😵 更新失败，可试 #dps强制更新')
         return true
       }
 
+      // 恢复用户改过的配置
+      if (cfgBackup !== null) {
+        try {
+          fs.writeFileSync(cfgFile, cfgBackup)
+        } catch {
+          /* 忽略 */
+        }
+      }
+
       const after = await gitShortRev()
-      if (before && after && before === after) {
+      // 普通模式下 commit 没变就是「已是最新」；强制模式一律报「已强制更新」
+      if (!force && before && after && before === after) {
         await e.reply(`✅ 已是最新版本\n${PKG_NAME} v${VERSION}｜${after}`)
         return true
       }
 
       await e.reply(
         [
-          '✅ 更新完成',
+          force ? '✅ 已强制更新（本地改动已丢弃，配置文件已保留）' : '✅ 更新完成',
           `${before || '（未知）'} → ${after || '（未知）'}`,
           '',
-          '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。',
-          out ? `\n${out.slice(0, 300)}` : ''
+          '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。'
         ].join('\n')
       )
       return true
