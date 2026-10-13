@@ -93,6 +93,9 @@ alias:              # 角色俗称 → 官方名
   不带版本号默认取最新版；写了版本号（`#dps危战 5.7 水形幻人`）则精确命中该版本。
 - **角色俗称**：在 `config/config.yaml` 的 `alias` 里加，改完即时生效。
 - **缓存时长 / 每页条数**：都在 `config/config.yaml` 里调整。
+- **外置渲染服务（可选）**：`config/config.yaml` 的 `renderServer` 可以填 Karin 的
+  `@karinjs/puppeteer`（社区俗称 pupu）地址，图片就交给它渲染（复用它的常驻浏览器）；
+  连不上会自动回退云崽自己的渲染器，不影响使用。
 
 ## 依赖说明
 

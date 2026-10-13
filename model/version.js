@@ -5,7 +5,7 @@ import path from 'node:path'
 export const PLUGIN_NAME = 'DPS-plugin'
 
 /** 插件版本号（发版时改这里，页脚会自动跟着变） */
-export const VERSION = '1.0.2'
+export const VERSION = '1.0.3'
 
 /** 云崽显示名 */
 const YUNZAI_NAME = 'TRSS-Yunzai'
@@ -24,7 +24,7 @@ export function yunzaiVersion() {
   return v ? String(v) : '未知'
 }
 
-/** 纯文本版本串：TRSS-Yunzai v3.1.3 · DPS-plugin v1.0.2 */
+/** 纯文本版本串：TRSS-Yunzai v3.1.3 · DPS-plugin v1.0.3 */
 export function versionLine() {
   return `${YUNZAI_NAME} v${yunzaiVersion()} · ${PLUGIN_NAME} v${VERSION}`
 }
