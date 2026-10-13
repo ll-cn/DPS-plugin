@@ -204,6 +204,19 @@ async function renderViaServer(tplFile, data) {
   }
 }
 
+/** 包成图片消息段。云崽标准写法（lib/puppeteer/puppeteer.js 也是这么包的）：
+ *  裸 Buffer 会被 StringOrBuffer() 当成纯数据转成 base64:// 内嵌，图一大就发不出去；
+ *  包成 image 段后由适配器走 fileType()，超过阈值会自动落盘转 file:// 走上传通道。 */
+function toImage(img) {
+  if (!img) return null
+  try {
+    if (typeof segment !== 'undefined' && typeof segment?.image === 'function') return segment.image(img)
+  } catch {
+    /* 忽略 */
+  }
+  return img
+}
+
 export async function renderTo(tplFile, name, data) {
   if (!fs.existsSync(tplFile)) {
     log('error', `模板不存在：${tplFile}`)
@@ -219,7 +232,7 @@ export async function renderTo(tplFile, name, data) {
     const img = await renderViaServer(tplFile, tplData)
     if (img) {
       rsDownUntil = 0
-      return img
+      return toImage(img)
     }
     rsDownUntil = Date.now() + 60 * 1000
     log('warn', `外置渲染服务不可用，已回退云崽渲染器（${name}）`)
@@ -240,9 +253,11 @@ export async function renderTo(tplFile, name, data) {
     ...tplData
   }
 
+  // 用 loader 自身渲染：它会按顺序遍历所有渲染后端（含 puppeteer_ws / 外置渲染服务等），
+  // 失败一个会接着试下一个；getRenderer() 只返回单个后端，失败就没得 fallback。
   const shot = async () => {
     try {
-      return (await loader.getRenderer().render(name, payload)) || null
+      return (await loader.render(name, payload)) || null
     } catch (err) {
       log('warn', `渲染异常（${name}）：${err?.message ?? err}`)
       return null
@@ -251,10 +266,11 @@ export async function renderTo(tplFile, name, data) {
 
   let img = await shot()
 
-  // 老版 puppeteer 找不到自带 Chromium 会直接失败，补系统浏览器再试一次
+  // 全都失败时，再给后端补一个系统浏览器路径重试一次
+  // （老版 puppeteer 找不到自带 Chromium 会直接失败，不会回退系统浏览器）
   if (!img) {
     const browser = findSystemBrowser()
-    if (browser && patchBrowser(loader.getRenderer(), browser)) {
+    if (browser && patchBrowser(loader, browser)) {
       log('mark', `渲染失败，改用系统浏览器重试：${browser}`)
       img = await shot()
     }
@@ -264,5 +280,5 @@ export async function renderTo(tplFile, name, data) {
     log('error', `渲染返回空：${name}`)
     return null
   }
-  return img
+  return toImage(img)
 }
