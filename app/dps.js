@@ -79,11 +79,18 @@ async function readGitLog(limit = 50, since = '') {
   return out
 }
 
-/** 把更新日志发成合并转发（和云崽 #更新日志 一样），失败回退纯文本 */
-async function replyGitLog(e, title, lines) {
-  const msgs = [title, ...lines, REPO_URL]
+/** 构造合并转发消息（云崽 Bot 没这个 API 时自己拼一个） */
+function makeForward(msgs) {
+  const arr = Array.isArray(msgs) ? msgs : [msgs]
+  if (typeof Bot?.makeForwardArray === 'function') return Bot.makeForwardArray(arr)
+  return { type: 'node', data: arr.map(message => ({ message })) }
+}
+
+/** 发合并转发：标题 + 全部提交（一个气泡）+ 仓库地址，和云崽 #更新日志 一样；失败回退纯文本 */
+export async function replyGitLog(e, title, lines) {
+  const msgs = [title, lines.join('\n\n'), REPO_URL]
   try {
-    await e.reply(Bot.makeForwardArray(msgs, { nickname: '更新日志', user_id: Bot.uin }))
+    await e.reply(makeForward(msgs))
   } catch (err) {
     log('warn', `合并转发失败，改用纯文本：${err?.message ?? err}`)
     await e.reply(msgs.join('\n'))
