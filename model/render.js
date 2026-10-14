@@ -111,9 +111,11 @@ function patchBrowser(renderer, browser) {
 }
 
 /** 包成图片消息段。裸 Buffer 会被 StringOrBuffer() 转成 base64:// 内嵌，图一大就发不出去；
- *  包成 image 段后适配器走 fileType()，超阈值自动落盘转 file:// 走上传通道。 */
+ *  包成 image 段后适配器走 fileType()，超阈值自动落盘转 file:// 走上传通道。
+ *  （部分云崽的 puppeteer.screenshot() 已经包好了段，这里不重复包） */
 function toImage(img) {
   if (!img) return null
+  if (!Buffer.isBuffer(img) && !(img instanceof Uint8Array) && typeof img !== 'string') return img
   try {
     if (typeof segment !== 'undefined' && typeof segment?.image === 'function') return segment.image(img)
   } catch {
@@ -122,22 +124,49 @@ function toImage(img) {
   return img
 }
 
+/**
+ * 收集可用的渲染入口。不同分支/版本的云崽入口不一样，逐个试：
+ *  ① lib/puppeteer/puppeteer.js —— 生态通用入口，miao / genshin / ji 等几十个插件都用它，兼容性最好
+ *  ② lib/renderer/loader.js 的 render —— TRSS 新版入口，会遍历所有渲染后端
+ *  ③ loader.getRenderer() —— 指定了 renderer.yaml 的 name 时，直接问那个后端
+ */
+async function loadRenderTargets() {
+  const targets = []
+  const seen = new Set()
+  const add = (label, target, key) => {
+    if (!target || seen.has(key)) return
+    seen.add(key)
+    const call =
+      typeof target.screenshot === 'function'
+        ? (n, p) => target.screenshot(n, p)
+        : typeof target.render === 'function'
+          ? (n, p) => target.render(n, p)
+          : null
+    if (call) targets.push({ label, target, call })
+  }
+
+  try {
+    const d = (await import('../../../lib/puppeteer/puppeteer.js')).default
+    add('puppeteer', d, d)
+  } catch (err) {
+    log('warn', `puppeteer 入口不可用：${err?.message ?? err}`)
+  }
+
+  try {
+    const loader = (await import('../../../lib/renderer/loader.js')).default
+    add('loader.render', loader?.render ? loader : null, loader)
+    const one = loader?.getRenderer?.()
+    add(`getRenderer(${one?.id ?? '?'})`, one && one !== loader ? one : null, one)
+  } catch (err) {
+    log('warn', `渲染器加载失败：${err?.message ?? err}`)
+  }
+
+  return targets
+}
+
 export async function renderTo(tplFile, name, data) {
   if (!fs.existsSync(tplFile)) {
     log('error', `模板不存在：${tplFile}`)
-    return null
-  }
-
-  const tplData = {
-    versionHtml: versionHtml(),
-    ...data
-  }
-
-  let loader
-  try {
-    loader = (await import('../../../lib/renderer/loader.js')).default
-  } catch (err) {
-    log('error', `渲染器加载失败（${name}）：${err?.message ?? err}`)
     return null
   }
 
@@ -145,35 +174,40 @@ export async function renderTo(tplFile, name, data) {
     tplFile,
     saveId: `${name}-${Date.now()}`,
     quality: CONFIG.jpegQuality,
-    ...tplData
+    versionHtml: versionHtml(),
+    ...data
   }
 
-  // 用 loader 自身渲染：它会按顺序遍历云崽的所有渲染后端（puppeteer / puppeteer_ws / 外置渲染服务等），
-  // 失败一个接着试下一个；getRenderer() 只返回单个后端，失败就没得 fallback。
-  const shot = async () => {
+  const targets = await loadRenderTargets()
+  if (!targets.length) {
+    log('error', `没有可用的渲染入口（${name}）`)
+    return null
+  }
+
+  const shot = async t => {
     try {
-      return (await loader.render(name, payload)) || null
+      return (await t.call(name, payload)) || null
     } catch (err) {
-      log('warn', `渲染异常（${name}）：${err?.message ?? err}`)
+      log('warn', `渲染异常（${name} / ${t.label}）：${err?.message ?? err}`)
       return null
     }
   }
 
-  let img = await shot()
-
-  // 全都失败时，再给后端补一个系统浏览器路径重试一次
-  // （老版 puppeteer 找不到自带 Chromium 会直接失败，不会回退系统浏览器）
-  if (!img) {
-    const browser = findSystemBrowser()
-    if (browser && patchBrowser(loader, browser)) {
-      log('mark', `渲染失败，改用系统浏览器重试：${browser}`)
-      img = await shot()
+  for (const t of targets) {
+    let img = await shot(t)
+    if (!img) {
+      // 失败时给后端补一个系统浏览器路径重试一次
+      // （老版 puppeteer 找不到自带 Chromium 会直接失败，不会回退系统浏览器）
+      const browser = findSystemBrowser()
+      if (browser && patchBrowser(t.target, browser)) {
+        log('mark', `渲染失败，改用系统浏览器重试：${browser}（${t.label}）`)
+        img = await shot(t)
+      }
     }
+    if (img) return toImage(img)
+    log('warn', `渲染入口 ${t.label} 未出图（${name}）`)
   }
 
-  if (!img) {
-    log('error', `渲染返回空：${name}`)
-    return null
-  }
-  return toImage(img)
+  log('error', `渲染返回空：${name}`)
+  return null
 }
