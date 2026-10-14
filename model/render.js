@@ -8,9 +8,6 @@ import { CONFIG } from './config.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-/** 外置渲染服务失败后的冷却截止时间 */
-let rsDownUntil = 0
-
 export const RES_DIR = path.join(__dirname, '..', 'resources')
 export const TPL_TEAMS = path.join(RES_DIR, 'teams.html')
 export const TPL_WEIZHAN = path.join(RES_DIR, 'weizhan.html')
@@ -91,11 +88,7 @@ function findSystemBrowser() {
   return ''
 }
 
-/**
- * 给渲染后端补上系统浏览器路径。
- * getRenderer() 默认返回 loader 本身，真正的后端在 script_renderers / noscript_renderers 里，
- * 所以三种结构都覆盖。只改内存里的实例，不动框架文件与配置。
- */
+/** 给渲染后端补上系统浏览器路径（只改内存实例，不动框架文件与配置） */
 function patchBrowser(renderer, browser) {
   let patched = false
   const seen = new Set()
@@ -117,96 +110,8 @@ function patchBrowser(renderer, browser) {
   return patched
 }
 
-const dataUriCache = new Map()
-
-/** file:// 图片转 data URI（外置服务是 setContent 注入，file:// 会被浏览器拦掉） */
-function toDataUri(src) {
-  if (typeof src !== 'string' || !src.startsWith('file:')) return src
-  if (dataUriCache.has(src)) return dataUriCache.get(src)
-  try {
-    const file = decodeURIComponent(src.replace(/^file:\/{2,3}/, ''))
-    const buf = fs.readFileSync(file)
-    const ext = path.extname(file).slice(1).toLowerCase()
-    const mime =
-      ext === 'webp'
-        ? 'image/webp'
-        : ext === 'jpg' || ext === 'jpeg'
-          ? 'image/jpeg'
-          : ext === 'gif'
-            ? 'image/gif'
-            : 'image/png'
-    const uri = `data:${mime};base64,${buf.toString('base64')}`
-    dataUriCache.set(src, uri)
-    return uri
-  } catch {
-    return src
-  }
-}
-
-function inlineImages(node, depth = 0) {
-  if (!node || typeof node !== 'object' || depth > 6) return
-  if (Array.isArray(node)) {
-    for (const item of node) inlineImages(item, depth + 1)
-    return
-  }
-  if (typeof node.face === 'string') node.face = toDataUri(node.face)
-  for (const v of Object.values(node)) {
-    if (v && typeof v === 'object') inlineImages(v, depth + 1)
-  }
-}
-
-/** 外置渲染服务（如 pupu）：POST {url}/render，失败返回 null 由调用方回退 */
-async function renderViaServer(tplFile, data) {
-  const rs = CONFIG.renderServer
-  const url = `${String(rs.url).replace(/\/+$/, '')}/render`
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), rs.timeout)
-
-  try {
-    const payloadData = JSON.parse(JSON.stringify(data))
-    inlineImages(payloadData)
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(rs.token ? { authorization: rs.token } : {})
-      },
-      body: JSON.stringify({
-        file: tplFile,
-        data: payloadData,
-        type: 'jpeg',
-        quality: CONFIG.jpegQuality,
-        selector: 'body',
-        fullPage: false,
-        encoding: 'binary',
-        setViewport: { width: 800, height: 800, deviceScaleFactor: 1 }
-      }),
-      signal: ctrl.signal
-    })
-
-    if (!res.ok) {
-      log('warn', `外置渲染服务返回 HTTP ${res.status}`)
-      return null
-    }
-    const buf = Buffer.from(await res.arrayBuffer())
-    if (!buf.length) {
-      log('warn', '外置渲染服务返回空内容')
-      return null
-    }
-    return buf
-  } catch (err) {
-    const msg = err?.name === 'AbortError' ? '请求超时' : (err?.message ?? err)
-    log('warn', `外置渲染服务不可用：${msg}`)
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-/** 包成图片消息段。云崽标准写法（lib/puppeteer/puppeteer.js 也是这么包的）：
- *  裸 Buffer 会被 StringOrBuffer() 当成纯数据转成 base64:// 内嵌，图一大就发不出去；
- *  包成 image 段后由适配器走 fileType()，超过阈值会自动落盘转 file:// 走上传通道。 */
+/** 包成图片消息段。裸 Buffer 会被 StringOrBuffer() 转成 base64:// 内嵌，图一大就发不出去；
+ *  包成 image 段后适配器走 fileType()，超阈值自动落盘转 file:// 走上传通道。 */
 function toImage(img) {
   if (!img) return null
   try {
@@ -228,17 +133,6 @@ export async function renderTo(tplFile, name, data) {
     ...data
   }
 
-  // 用外置渲染服务（url 留空 = 不启用）
-  if (CONFIG.renderServer?.enable && CONFIG.renderServer.url && Date.now() > rsDownUntil) {
-    const img = await renderViaServer(tplFile, tplData)
-    if (img) {
-      rsDownUntil = 0
-      return toImage(img)
-    }
-    rsDownUntil = Date.now() + 60 * 1000
-    log('warn', `外置渲染服务不可用，已回退云崽渲染器（${name}）`)
-  }
-
   let loader
   try {
     loader = (await import('../../../lib/renderer/loader.js')).default
@@ -254,8 +148,8 @@ export async function renderTo(tplFile, name, data) {
     ...tplData
   }
 
-  // 用 loader 自身渲染：它会按顺序遍历所有渲染后端（含 puppeteer_ws / 外置渲染服务等），
-  // 失败一个会接着试下一个；getRenderer() 只返回单个后端，失败就没得 fallback。
+  // 用 loader 自身渲染：它会按顺序遍历云崽的所有渲染后端（puppeteer / puppeteer_ws / 外置渲染服务等），
+  // 失败一个接着试下一个；getRenderer() 只返回单个后端，失败就没得 fallback。
   const shot = async () => {
     try {
       return (await loader.render(name, payload)) || null

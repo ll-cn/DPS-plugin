@@ -59,6 +59,8 @@ git clone https://github.com/ll-cn/DPS-plugin.git plugins/DPS-plugin
 ```yaml
 cacheTime: 300000   # 数据缓存时长(毫秒)，官方建议 ≥5 分钟
 timeout: 25000      # 请求超时(毫秒)
+jpegQuality: 80     # 出图质量(0-100，越低图越小)
+textOnly: false     # 只发文字不发图
 perPage: 5          # 每页条数
 maxPage: 30         # 最多翻到第几页
 lowCost: 2          # 危战「低金」的金数上限
@@ -96,9 +98,9 @@ alias:              # 角色俗称 → 官方名
   不带版本号默认取最新版；写了版本号（`#dps危战 5.7 水形幻人`）则精确命中该版本。
 - **角色俗称**：在 `config/config.yaml` 的 `alias` 里加，改完即时生效。
 - **缓存时长 / 每页条数**：都在 `config/config.yaml` 里调整。
-- **外置渲染服务（可选）**：`config/config.yaml` 的 `renderServer` 可以填 Karin 的
-  `@karinjs/puppeteer`（社区俗称 pupu）地址，图片就交给它渲染（复用它的常驻浏览器）；
-  连不上会自动回退云崽自己的渲染器，不影响使用。
+- **出图**：走**云崽自己的渲染器**（puppeteer / 外置渲染服务 / 浏览器路径都在云崽侧配置），
+  插件会按顺序试遍所有后端；都失败时再自动改用系统 Chrome / Edge 重试一次。
+  所以浏览器相关的东西**不用在插件里配**，把云崽那台配好即可。
 
 ## 依赖说明
 

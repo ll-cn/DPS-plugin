@@ -26,15 +26,7 @@ const DEFAULT_ALIAS = {
   冰神: '至冬女皇'
 }
 
-/** 外置渲染服务默认值（url 留空，由用户自己填） */
-const DEFAULT_RENDER_SERVER = {
-  enable: false,
-  url: '',
-  token: '',
-  timeout: 60 * 1000
-}
-
-export const CONFIG = { ...DEFAULTS, renderServer: { ...DEFAULT_RENDER_SERVER } }
+export const CONFIG = { ...DEFAULTS }
 export const ALIAS = { ...DEFAULT_ALIAS }
 
 let yamlLib
@@ -47,17 +39,6 @@ try {
 function posNum(v, def) {
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? n : def
-}
-
-/** token 可能是数字，统一成字符串 */
-function normalizeRenderServer(v) {  const d = DEFAULT_RENDER_SERVER
-  if (!v || typeof v !== 'object') return { ...d }
-  return {
-    enable: v.enable === true || v.enable === 'true',
-    url: typeof v.url === 'string' && v.url.trim() ? v.url.trim() : d.url,
-    token: v.token == null ? '' : String(v.token),
-    timeout: posNum(v.timeout, d.timeout)
-  }
 }
 
 let lastMtime = -1
@@ -87,7 +68,6 @@ export function loadConfig(force = false) {
   CONFIG.perPage = Math.max(1, Math.floor(posNum(raw.perPage, DEFAULTS.perPage)))
   CONFIG.maxPage = Math.max(1, Math.floor(posNum(raw.maxPage, DEFAULTS.maxPage)))
   CONFIG.lowCost = Number.isFinite(Number(raw.lowCost)) ? Number(raw.lowCost) : DEFAULTS.lowCost
-  CONFIG.renderServer = normalizeRenderServer(raw.renderServer)
   CONFIG.jpegQuality = Math.min(
     100,
     Math.max(30, Math.floor(posNum(raw.jpegQuality, DEFAULTS.jpegQuality)))
