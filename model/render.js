@@ -228,7 +228,8 @@ export async function renderTo(tplFile, name, data) {
     ...data
   }
 
-  if (CONFIG.renderServer?.enable && Date.now() > rsDownUntil) {
+  // 用外置渲染服务（url 留空 = 不启用）
+  if (CONFIG.renderServer?.enable && CONFIG.renderServer.url && Date.now() > rsDownUntil) {
     const img = await renderViaServer(tplFile, tplData)
     if (img) {
       rsDownUntil = 0

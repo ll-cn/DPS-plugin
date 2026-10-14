@@ -26,10 +26,10 @@ const DEFAULT_ALIAS = {
   冰神: '至冬女皇'
 }
 
-/** 外置渲染服务默认值 */
+/** 外置渲染服务默认值（url 留空，由用户自己填） */
 const DEFAULT_RENDER_SERVER = {
   enable: false,
-  url: 'http://127.0.0.1:7006',
+  url: '',
   token: '',
   timeout: 60 * 1000
 }
