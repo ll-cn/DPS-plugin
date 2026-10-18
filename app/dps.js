@@ -258,7 +258,7 @@ export class genshinDps extends plugin {
 
     const r = await fetchData('teams2')
     if (!r.ok) {
-      await e.reply(`😵 拉取危战数据失败：${r.err}\n接口有 Cloudflare 防护，稍后再试。`)
+      await e.reply(`😵 拉取危战数据失败：${r.err}${r.hint ? `\n${r.hint}` : ''}`)
       return true
     }
 
@@ -448,7 +448,7 @@ export class genshinDps extends plugin {
 
     const r = await fetchTeams()
     if (!r.ok) {
-      await e.reply(`😵 拉取 DPS 数据失败：${r.err}\n接口有 Cloudflare 防护，稍后再试。`)
+      await e.reply(`😵 拉取 DPS 数据失败：${r.err}${r.hint ? `\n${r.hint}` : ''}`)
       return true
     }
 

@@ -1,16 +1,1 @@
-# 依赖（本插件没有 npm 依赖，一般用不到）
-node_modules/
-
-# 日志
-*.log
-logs/
-
-# 渲染临时产物
-temp/
-
-# 编辑器 / 系统
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-desktop.ini
+data/
