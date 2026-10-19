@@ -31,6 +31,20 @@ export function isClean(t) {
   return t?.clean !== false && !(t?.tags || []).includes('宏')
 }
 
+/** 卡片右侧的小图标（宏/绿玩/甘刻/含命星）与其余文字标签 */
+const HIDDEN_TAGS = new Set(['宏', '甘刻', '星体系'])
+
+function badgeOf(t) {
+  const tags = Array.isArray(t?.tags) ? t.tags.filter(Boolean) : []
+  return {
+    macro: tags.includes('宏'),
+    clean: isClean(t),
+    gk: tags.includes('甘刻'),
+    lvl: t?.lvl === true,
+    badges: tags.filter(x => !HIDDEN_TAGS.has(x)).map(x => esc(x))
+  }
+}
+
 /** 队伍成员 → 模板用的成员数组（含头像与命座） */
 function membersOf(t, chars) {
   return (t?.members || []).map(m => {
@@ -72,14 +86,11 @@ function costRowHtml(t) {
  * 金数展示照抄网站口径（总金 + 限/常），不自己算「含命星」
  */
 export function toCard(t, chars, rankIdx) {
-  const tags = Array.isArray(t?.tags) ? t.tags.filter(Boolean) : []
   return {
     rank: rankIdx + 1,
     rankColor: RANK_COLOR[rankIdx] || RANK_COLOR_DEFAULT,
     members: membersOf(t, chars),
-    badges: tags.map(x => esc(x)),
-    clean: isClean(t),
-    confirm: t?.confirm !== false,
+    ...badgeOf(t),
     dmgText: dmgText(t?.damage),
     costHtml: costRowHtml(t).costHtml,
     video: !!t?.video_url,
@@ -92,17 +103,14 @@ export function toCard(t, chars, rankIdx) {
  * 榜单按 speed 升序（越快越靠前），与 DPS 榜相反
  */
 export function toWeizhanCard(t, chars, rankIdx, rankNumber) {
-  const tags = Array.isArray(t?.tags) ? t.tags.filter(Boolean) : []
   return {
     rank: rankNumber ?? rankIdx + 1,
     rankColor: RANK_COLOR[rankIdx] || RANK_COLOR_DEFAULT,
     members: membersOf(t, chars),
-    badges: tags.map(x => esc(x)),
-    confirm: t?.confirm !== false,
+    ...badgeOf(t),
     costText: costRowHtml(t).costText,
     speedText: speedText(t?.speed),
     video: !!t?.video_url,
-    clean: isClean(t),
     _raw: t
   }
 }

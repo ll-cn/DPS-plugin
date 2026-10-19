@@ -159,23 +159,28 @@
       gap: 4px;
       margin-bottom: 8px;
     }
+    .ic {
+      width: 20px;
+      height: 20px;
+      display: block;
+      flex-shrink: 0;
+    }
+    .ic.lv { width: 23px; height: 23px; }
     .chip {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 19px;
-      height: 19px;
-      padding: 0 5px;
-      border-radius: 10px;
-      background: #f04438;
-      color: #fff;
+      height: 18px;
+      padding: 0 6px;
+      border-radius: 9px;
+      background: #eef1f7;
+      border: 1px solid #e0e6f0;
+      color: #6a7892;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
       line-height: 1;
       white-space: nowrap;
     }
-    .chip.ok { background: #22b573; }
-    .crown svg { width: 19px; height: 19px; display: block; }
     .dmg {
       font-size: 27px;
       font-weight: 800;
@@ -273,9 +278,10 @@
         <div class="stats">
           <div class="dmg">{{item.dmgText}}</div>
           <div class="badges">
+            {{if item.macro}}<img class="ic" src="{{badgeRed}}" alt="宏" />
+            {{else}}{{if item.clean}}<img class="ic" src="{{item.gk ? badgeGk : badgeGreen}}" alt="绿" />{{/if}}{{/if}}
+            {{if item.lvl}}<img class="ic lv" src="{{badgeLv}}" alt="含命星" />{{/if}}
             {{each item.badges b}}<span class="chip">{{b}}</span>{{/each}}
-            {{if item.clean}}<span class="chip ok">绿</span>{{/if}}
-            {{if item.confirm}}<span class="crown"><svg viewBox="0 0 24 24"><path d="M3.2 8.1l4.4 3.3L12 4.6l4.4 6.8 4.4-3.3-1.5 10H4.7L3.2 8.1z" fill="#7b61d6"/></svg></span>{{/if}}
             <span class="vbtn {{if !item.video}}none{{/if}}">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M8 5.5v13l11-6.5L8 5.5z" fill="#fff"/>

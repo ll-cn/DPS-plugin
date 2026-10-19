@@ -9,7 +9,7 @@ export const CONFIG_FILE = path.join(__dirname, '..', 'config', 'config.yaml')
 const DEFAULTS = {
   cacheTime: 5 * 60 * 1000,
   timeout: 25 * 1000,
-  perPage: 5,
+  perPage: 20,
   maxPage: 30,
   lowCost: 2,
   jpegQuality: 90,
@@ -48,7 +48,7 @@ jpegQuality: 90
 textOnly: false
 
 # 榜单每页显示条数
-perPage: 5
+perPage: 20
 
 # 最多翻到第几页
 maxPage: 30

@@ -18,7 +18,7 @@ jpegQuality: 90
 textOnly: false
 
 # 榜单每页显示条数
-perPage: 5
+perPage: 20
 
 # 最多翻到第几页
 maxPage: 30

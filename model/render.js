@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { log } from './log.js'
 import { versionHtml } from './version.js'
 import { CONFIG } from './config.js'
@@ -15,6 +15,16 @@ export const TPL_HELP = path.join(RES_DIR, 'help.html')
 
 export const PLUGIN_ROOT = path.dirname(RES_DIR)
 export const PLUGIN_DIR_NAME = path.basename(PLUGIN_ROOT)
+
+/** 图片资源的 file:// 地址（模板里直接当 src 用） */
+function resUrl(name) {
+  const p = path.join(RES_DIR, name)
+  try {
+    return fs.existsSync(p) ? pathToFileURL(p).href : ''
+  } catch {
+    return ''
+  }
+}
 
 export function missingTplList() {
   return [
@@ -175,6 +185,10 @@ export async function renderTo(tplFile, name, data) {
     saveId: `${name}-${Date.now()}`,
     quality: CONFIG.jpegQuality,
     cssZoom: CONFIG.imageScale,
+    badgeRed: resUrl('badge-red.png'),
+    badgeGreen: resUrl('badge-green.png'),
+    badgeGk: resUrl('badge-gk.png'),
+    badgeLv: resUrl('badge-lv.png'),
     versionHtml: versionHtml(),
     ...data
   }

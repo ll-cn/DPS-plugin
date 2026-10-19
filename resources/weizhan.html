@@ -116,14 +116,10 @@
       display: flex; flex-direction: column; gap: 4px;
       align-items: center; flex-shrink: 0;
     }
-    .chip {
-      display: inline-flex; align-items: center; justify-content: center;
-      min-width: 19px; height: 19px; padding: 0 5px;
-      border-radius: 10px; background: #f04438; color: #fff;
-      font-size: 11px; font-weight: 700; line-height: 1; white-space: nowrap;
+    .ic {
+      width: 20px; height: 20px; display: block; flex-shrink: 0;
     }
-    .chip.ok { background: #22b573; }
-    .crown svg { width: 19px; height: 19px; display: block; }
+    .ic.lv { width: 23px; height: 23px; }
 
     .vbtn {
       display: inline-flex; align-items: center; justify-content: center;
@@ -247,9 +243,9 @@
 
           <div class="stats">
             <div class="badges">
-              {{each item.badges b}}<span class="chip">{{b}}</span>{{/each}}
-              {{if item.clean}}<span class="chip ok">绿</span>{{/if}}
-              {{if item.confirm}}<span class="crown"><svg viewBox="0 0 24 24"><path d="M3.2 8.1l4.4 3.3L12 4.6l4.4 6.8 4.4-3.3-1.5 10H4.7L3.2 8.1z" fill="#7b61d6"/></svg></span>{{/if}}
+              {{if item.macro}}<img class="ic" src="{{badgeRed}}" alt="宏" />
+              {{else}}{{if item.clean}}<img class="ic" src="{{item.gk ? badgeGk : badgeGreen}}" alt="绿" />{{/if}}{{/if}}
+              {{if item.lvl}}<img class="ic lv" src="{{badgeLv}}" alt="含命星" />{{/if}}
             </div>
             <div class="stat cost">
               <div class="v">{{item.costText}}</div>

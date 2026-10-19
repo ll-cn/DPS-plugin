@@ -35,7 +35,7 @@ export class genshinDpsHelp extends plugin {
           name: 'DPS配队榜',
           cls: 'dps',
           items: [
-            { icon: '⚔️', cmd: '#dps配队 <角色>', desc: '该角色的配队榜（按伤害），每页 5 条' },
+            { icon: '⚔️', cmd: '#dps配队 <角色>', desc: '该角色的配队榜（按伤害），每页 20 条' },
             { icon: '💰', cmd: '#dps配队 <角色> N金', desc: '只看金数 ≤N 的配队' },
             { icon: '📄', cmd: '#dps配队 <角色> <页数>', desc: '翻页看后面的名次' },
             { icon: '✨', cmd: '#dps风仙排行6金', desc: '俗称、词序都随意（风仙 = 薇斯纳）' }
