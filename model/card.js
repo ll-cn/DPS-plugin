@@ -77,7 +77,9 @@ export function toCard(t, chars, rankIdx) {
     rank: rankIdx + 1,
     rankColor: RANK_COLOR[rankIdx] || RANK_COLOR_DEFAULT,
     members: membersOf(t, chars),
-    tag: tags.length ? esc(tags.join(' ')) : '',
+    badges: tags.map(x => esc(x)),
+    clean: isClean(t),
+    confirm: t?.confirm !== false,
     dmgText: dmgText(t?.damage),
     costHtml: costRowHtml(t).costHtml,
     video: !!t?.video_url,
@@ -90,14 +92,17 @@ export function toCard(t, chars, rankIdx) {
  * 榜单按 speed 升序（越快越靠前），与 DPS 榜相反
  */
 export function toWeizhanCard(t, chars, rankIdx, rankNumber) {
+  const tags = Array.isArray(t?.tags) ? t.tags.filter(Boolean) : []
   return {
     rank: rankNumber ?? rankIdx + 1,
     rankColor: RANK_COLOR[rankIdx] || RANK_COLOR_DEFAULT,
     members: membersOf(t, chars),
+    badges: tags.map(x => esc(x)),
+    confirm: t?.confirm !== false,
     costText: costRowHtml(t).costText,
     speedText: speedText(t?.speed),
     video: !!t?.video_url,
-    cleaned: t?.clean !== false,
+    clean: isClean(t),
     _raw: t
   }
 }

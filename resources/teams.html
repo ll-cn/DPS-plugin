@@ -146,26 +146,36 @@
 
     /* ---------------- 右侧数据 ---------------- */
     .stats {
-      width: 132px;
+      width: 168px;
       flex-shrink: 0;
       text-align: right;
       padding-left: 6px;
     }
-    .tag {
-      display: inline-block;
-      font-size: 12px;
-      color: #6a5bd4;
-      background: linear-gradient(135deg, #f0edff 0%, #e8e4ff 100%);
-      border: 1px solid #ddd6fb;
-      border-radius: 10px;
-      padding: 3px 11px;
-      margin-bottom: 9px;
-      max-width: 118px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 8px;
     }
-    .tag.none { visibility: hidden; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 19px;
+      height: 19px;
+      padding: 0 5px;
+      border-radius: 10px;
+      background: #f04438;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .chip.ok { background: #22b573; }
+    .crown svg { width: 19px; height: 19px; display: block; }
     .dmg {
       font-size: 27px;
       font-weight: 800;
@@ -191,10 +201,11 @@
       justify-content: center;
       width: 30px;
       height: 22px;
-      background: #f4334a;
+      background: #00aeec;
       border-radius: 6px;
-      vertical-align: middle;
     }
+    .vbtn svg { width: 14px; height: 14px; }
+    .vbtn.none { visibility: hidden; }
     .vbtn svg { width: 13px; height: 13px; }
 
     /* ---------------- 底部 ---------------- */
@@ -260,20 +271,18 @@
         </div>
 
         <div class="stats">
-          {{if item.tag}}
-            <div class="tag">{{item.tag}}</div>
-          {{else}}
-            <div class="tag none">-</div>
-          {{/if}}
           <div class="dmg">{{item.dmgText}}</div>
-          <div class="cost">{{@item.costHtml}}</div>
-          {{if item.video}}
-            <div class="vbtn">
+          <div class="badges">
+            {{each item.badges b}}<span class="chip">{{b}}</span>{{/each}}
+            {{if item.clean}}<span class="chip ok">绿</span>{{/if}}
+            {{if item.confirm}}<span class="crown"><svg viewBox="0 0 24 24"><path d="M3.2 8.1l4.4 3.3L12 4.6l4.4 6.8 4.4-3.3-1.5 10H4.7L3.2 8.1z" fill="#7b61d6"/></svg></span>{{/if}}
+            <span class="vbtn {{if !item.video}}none{{/if}}">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M8 5.5v13l11-6.5L8 5.5z" fill="#fff"/>
               </svg>
-            </div>
-          {{/if}}
+            </span>
+          </div>
+          <div class="cost">{{@item.costHtml}}</div>
         </div>
       </div>
     {{/each}}

@@ -107,7 +107,7 @@ export class genshinDps extends plugin {
       event: 'message',
       priority: 500,
       rule: [
-        { reg: /^[#＃/／]?\s*dps(配队)?视频(?=$|[\s])/i, fnc: 'video' },
+        { reg: /^[#＃/／]?\s*dps(配队)?(视频|bv)(?=\d|第|$|[\s])/i, fnc: 'video' },
         { reg: /^[#＃/／]?\s*(dps)?[\d.]*\s*危战(列表|一览|boss|全部)/i, fnc: 'bossList' },
         { reg: /^[#＃/／]?\s*(dps)?[\d.]*\s*危战/i, fnc: 'weizhan' },
         { reg: /^[#＃/／]?\s*dps(更新日志|更新说明|changelog)(?=$|[\s])/i, fnc: 'changelog' },
@@ -165,6 +165,23 @@ export class genshinDps extends plugin {
     if (vm) {
       version = vm[1]
       s = s.replace(vm[0], ' ')
+    }
+
+    // 页码：第2页 / 2页，以及结尾直接跟的数字（#dps配队那维莱特2）
+    const pm = s.match(/第\s*(\d+)\s*页?|(\d+)\s*页/)
+    if (pm) {
+      const n = Number.parseInt(pm[1] ?? pm[2], 10)
+      if (n >= 1 && n <= CONFIG.maxPage) page = n
+      s = s.replace(pm[0], ' ')
+    } else {
+      const tail = s.match(/(\d+)\s*$/)
+      if (tail) {
+        const n = Number.parseInt(tail[1], 10)
+        if (n >= 1 && n <= CONFIG.maxPage) {
+          page = n
+          s = s.slice(0, tail.index)
+        }
+      }
     }
 
     // 剩下的独立数字当页码（取最后一个）
@@ -525,6 +542,23 @@ export class genshinDps extends plugin {
       s = s.replace(cm[0], ' ')
     }
 
+    // 页码：第2页 / 2页，以及结尾直接跟的数字（#dps配队那维莱特2）
+    const pm = s.match(/第\s*(\d+)\s*页?|(\d+)\s*页/)
+    if (pm) {
+      const n = Number.parseInt(pm[1] ?? pm[2], 10)
+      if (n >= 1 && n <= CONFIG.maxPage) page = n
+      s = s.replace(pm[0], ' ')
+    } else {
+      const tail = s.match(/(\d+)\s*$/)
+      if (tail) {
+        const n = Number.parseInt(tail[1], 10)
+        if (n >= 1 && n <= CONFIG.maxPage) {
+          page = n
+          s = s.slice(0, tail.index)
+        }
+      }
+    }
+
     // 剩下的独立数字当页码（取最后一个）
     const nums = [...s.matchAll(/(?:^|\s)(\d+)(?=\s|$)/g)]
     if (nums.length) {
@@ -582,7 +616,7 @@ export class genshinDps extends plugin {
 
   async video(e) {
     const rest = String(e?.msg ?? '')
-      .replace(/^[#＃/／]?\s*dps(配队)?视频/, '')
+      .replace(/^[#＃/／]?\s*dps(配队)?(视频|bv)/i, '')
       .trim()
     const n = Number.parseInt((rest.match(/\d+/) || [])[0] ?? '', 10)
     if (!Number.isFinite(n) || n < 1) {
