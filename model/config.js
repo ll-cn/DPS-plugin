@@ -12,7 +12,8 @@ const DEFAULTS = {
   perPage: 5,
   maxPage: 30,
   lowCost: 2,
-  jpegQuality: 80,
+  jpegQuality: 90,
+  imageScale: 2,
   textOnly: false
 }
 
@@ -37,8 +38,11 @@ cacheTime: 300000
 # 单次请求超时（毫秒）
 timeout: 25000
 
+# 出图清晰度倍数（1=原尺寸；2=两倍像素，手机上更清晰，图也更大）
+imageScale: 2
+
 # 出图质量（0-100，越低图越小）
-jpegQuality: 80
+jpegQuality: 90
 
 # 只发文字不发图（默认关闭；开启后所有查询都只发文字）
 textOnly: false
@@ -127,6 +131,7 @@ export function loadConfig(force = false) {
     100,
     Math.max(30, Math.floor(posNum(raw.jpegQuality, DEFAULTS.jpegQuality)))
   )
+  CONFIG.imageScale = Math.min(3, Math.max(1, Number(raw.imageScale) || DEFAULTS.imageScale))
   CONFIG.textOnly = raw.textOnly === true || raw.textOnly === 'true'
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]

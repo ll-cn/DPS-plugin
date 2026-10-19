@@ -60,7 +60,8 @@ git clone https://github.com/ll-cn/DPS-plugin.git plugins/DPS-plugin
 ```yaml
 cacheTime: 300000   # 数据缓存时长(毫秒)，官方建议 ≥5 分钟
 timeout: 25000      # 请求超时(毫秒)
-jpegQuality: 80     # 出图质量(0-100，越低图越小)
+imageScale: 2       # 出图清晰度倍数(1=原尺寸，2=两倍像素)
+jpegQuality: 90     # 出图质量(0-100，越低图越小)
 textOnly: false     # 只发文字不发图
 perPage: 5          # 每页条数
 maxPage: 30         # 最多翻到第几页
@@ -102,6 +103,7 @@ alias:              # 角色俗称 → 官方名
 - **出图**：走**云崽自己的渲染器**（puppeteer / 外置渲染服务 / 浏览器路径都在云崽侧配置），
   插件会按顺序试遍所有后端；都失败时再自动改用系统 Chrome / Edge 重试一次。
   所以浏览器相关的东西**不用在插件里配**，把云崽那台配好即可。
+  图片默认按 **2 倍像素**渲染（`imageScale`），手机上字更清楚；嫌图太大就改成 `1`。
 
 ## 依赖说明
 

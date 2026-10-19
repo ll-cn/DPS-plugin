@@ -174,6 +174,7 @@ export async function renderTo(tplFile, name, data) {
     tplFile,
     saveId: `${name}-${Date.now()}`,
     quality: CONFIG.jpegQuality,
+    cssZoom: CONFIG.imageScale,
     versionHtml: versionHtml(),
     ...data
   }
