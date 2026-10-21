@@ -56,6 +56,7 @@ git clone https://github.com/ll-cn/DPS-plugin.git plugins/DPS-plugin
 
 配置文件：**`config/config.yaml`**，改完保存**即时生效**（不用重启）。
 如果误删了它（或文件变成空的），**下次查询会自动重新生成**一份默认配置，不用担心跑不起来。
+插件升级后**新增的配置项会自动补进你的 config.yaml**（已有的值和注释都保留，不会覆盖你的改动）。
 
 ```yaml
 cacheTime: 300000   # 数据缓存时长(毫秒)，官方建议 ≥5 分钟

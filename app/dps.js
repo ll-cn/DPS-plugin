@@ -56,6 +56,32 @@ function isGitRepo() {
   }
 }
 
+/** 比较配置内容时忽略换行符差异（git 存 LF，Windows 工作区是 CRLF） */
+function normCfg(s) {
+  return String(s ?? '').replace(/\r\n/g, '\n').trim()
+}
+
+/** 把 git 的报错翻译成一句人话 + 建议 */
+function gitFailReason(detail) {
+  const d = String(detail || '')
+  const hit = (re, reason, tip) => (re.test(d) ? { reason, tip } : null)
+
+  return (
+    hit(/Could not resolve host|Failed to connect|Connection timed out|CONNECTTIMEOUT|Network is unreachable/i, '连不上 GitHub（网络或代理不通）', '检查机器人的网络/代理后重试。') ||
+    hit(/Authentication failed|could not read Username|terminal prompts disabled|Permission to .* denied|403 Forbidden/i, 'GitHub 验证失败（凭据失效或没有权限）', '需要在机器人机器上重新配置 GitHub 凭据。') ||
+    hit(/Your local changes|would be overwritten|Please commit your changes|not possible to fast-forward|diverged|rejected/i, '本地文件和远程冲突了', '用 #dps强制更新（会丢弃本地改动，配置会保留）。') ||
+    hit(/not a git repository/i, '插件目录不是 git 仓库', '只能删掉重装（git clone）后才能自动更新。') ||
+    hit(/SSL|certificate|unable to access/i, 'git 访问 GitHub 失败（SSL/代理）', '检查代理设置或关掉代理再试。') ||
+    hit(/No space left|EBUSY|EACCES|Permission denied|Access is denied/i, '磁盘空间不足或没有写权限', '检查磁盘剩余空间和插件目录权限。') ||
+    hit(/merge conflict|CONFLICT/i, '合并冲突', '用 #dps强制更新。') || {
+      reason: (d.split('\n').find(l => /fatal|error/i.test(l)) || d.split('\n')[0] || '未知原因')
+        .replace(/^\s*(fatal|error):\s*/i, '')
+        .slice(0, 120),
+      tip: '详细输出见机器人日志。'
+    }
+  )
+}
+
 /**
  * 读 git 提交历史（更新日志）
  * @param {number} limit 最多读多少条
@@ -731,14 +757,27 @@ export class genshinDps extends plugin {
     try {
       const before = await gitShortRev()
 
-      // 强制更新会丢弃本地改动，用户自己的配置文件先留一份
+      // 强制更新会丢弃本地改动：先留一份配置，并判断用户有没有改过它
       const cfgFile = path.join(PLUGIN_ROOT, 'config', 'config.yaml')
       let cfgBackup = null
+      let cfgUntouched = false
       if (force) {
         try {
           cfgBackup = fs.readFileSync(cfgFile, 'utf8')
         } catch {
           cfgBackup = null
+        }
+        if (cfgBackup !== null && before) {
+          try {
+            const { stdout } = await execFileAsync('git', ['show', `${before}:config/config.yaml`], {
+              cwd: PLUGIN_ROOT,
+              timeout: 15000
+            })
+            // 和旧版默认完全一样 = 用户没改过，可以直接用新版默认
+            cfgUntouched = normCfg(stdout) === normCfg(cfgBackup)
+          } catch {
+            /* 旧版本没有这个文件，按「改过」处理 */
+          }
         }
       }
 
@@ -764,15 +803,16 @@ export class genshinDps extends plugin {
           })
         }
       } catch (err) {
-        // 详细原因只写日志；群里回一句就好（不刷屏、也不暴露本机环境信息）
+        // 详细原因写日志；群里给一句能看懂的原因 + 建议
         const detail = String(err?.stderr || err?.stdout || err?.message || err).trim()
         log('error', `更新失败(${force ? '强制' : '普通'})：${detail.slice(0, 400)}｜目录 ${PLUGIN_ROOT}`)
-        await e.reply(force ? '😵 强制更新失败，请查看机器人日志。' : '😵 更新失败，可试 #dps强制更新')
+        const { reason, tip } = gitFailReason(detail)
+        await e.reply(`😵 ${force ? '强制更新' : '更新'}失败：${reason}\n${tip}`)
         return true
       }
 
-      // 恢复用户改过的配置
-      if (cfgBackup !== null) {
+      // 用户改过的配置要保留；没改过就用新版默认（能拿到调整过的默认值）
+      if (cfgBackup !== null && !cfgUntouched) {
         try {
           fs.writeFileSync(cfgFile, cfgBackup)
         } catch {
@@ -789,7 +829,11 @@ export class genshinDps extends plugin {
 
       await e.reply(
         [
-          force ? '✅ 已强制更新（本地改动已丢弃，配置文件已保留）' : '✅ 更新完成',
+          force
+            ? cfgUntouched
+              ? '✅ 已强制更新（本地改动已丢弃，配置没改过 → 已同步成新版默认）'
+              : '✅ 已强制更新（本地改动已丢弃，你自己改过的配置已保留）'
+            : '✅ 更新完成',
           `${before || '（未知）'} → ${after || '（未知）'}`,
           '',
           '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。'

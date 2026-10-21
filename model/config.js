@@ -95,6 +95,44 @@ function ensureConfigFile() {
   }
 }
 
+/** 把默认配置拆成「键 + 上面的注释」块 */
+function splitBlocks(text) {
+  const out = []
+  let pending = []
+  let cur = null
+  for (const line of text.split('\n')) {
+    const m = line.match(/^([A-Za-z_][\w-]*):/)
+    if (m) {
+      if (cur) out.push(cur)
+      cur = { key: m[1], lines: [...pending, line] }
+      pending = []
+    } else if (/^#/.test(line)) {
+      pending.push(line)
+    } else if (cur && line.trim()) {
+      cur.lines.push(line)
+    }
+  }
+  if (cur) out.push(cur)
+  return out.map(b => ({ key: b.key, text: b.lines.join('\n').replace(/\s+$/, '') }))
+}
+
+/** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释） */
+function syncConfigFile() {
+  try {
+    const text = fs.readFileSync(CONFIG_FILE, 'utf8')
+    const have = new Set([...text.matchAll(/^([A-Za-z_][\w-]*):/gm)].map(m => m[1]))
+    const missing = splitBlocks(DEFAULT_YAML).filter(b => !have.has(b.key))
+    if (!missing.length) return
+    const add = missing.map(b => b.text).join('\n\n')
+    fs.writeFileSync(CONFIG_FILE, `${text.replace(/\s+$/, '')}\n\n${add}\n`, 'utf8')
+    globalThis.logger?.mark?.(
+      `[原神DPS] 配置新增默认项：${missing.map(b => b.key).join('、')}`
+    )
+  } catch (err) {
+    globalThis.logger?.warn?.(`[原神DPS] 合并默认配置失败：${err?.message ?? err}`)
+  }
+}
+
 let lastMtime = -1
 
 export function loadConfig(force = false) {
@@ -111,6 +149,9 @@ export function loadConfig(force = false) {
   }
   if (!force && mtime === lastMtime) return
   lastMtime = mtime
+
+  // 插件升级后新增的配置项，这里补进用户自己的 config.yaml
+  syncConfigFile()
 
   let raw = {}
   if (yamlLib && mtime) {
