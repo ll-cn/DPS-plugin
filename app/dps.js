@@ -61,6 +61,29 @@ function normCfg(s) {
   return String(s ?? '').replace(/\r\n/g, '\n').trim()
 }
 
+/** 深比较用的稳定序列化（键排序，忽略书写顺序） */
+function stableJson(v) {
+  if (Array.isArray(v)) return v.map(stableJson)
+  if (v && typeof v === 'object') {
+    const o = {}
+    for (const k of Object.keys(v).sort()) o[k] = stableJson(v[k])
+    return o
+  }
+  return v
+}
+
+/** 两份配置是否等价（文本一致，或解析后内容一致 —— 注释/顺序不同不算改过） */
+async function sameCfg(a, b) {
+  if (normCfg(a) === normCfg(b)) return true
+  try {
+    const yaml = (await import('yaml')).default
+    return JSON.stringify(stableJson(yaml.parse(a) ?? {})) ===
+      JSON.stringify(stableJson(yaml.parse(b) ?? {}))
+  } catch {
+    return false
+  }
+}
+
 /** 把 git 的报错翻译成一句人话 + 建议 */
 function gitFailReason(detail) {
   const d = String(detail || '')
@@ -773,8 +796,8 @@ export class genshinDps extends plugin {
               cwd: PLUGIN_ROOT,
               timeout: 15000
             })
-            // 和旧版默认完全一样 = 用户没改过，可以直接用新版默认
-            cfgUntouched = normCfg(stdout) === normCfg(cfgBackup)
+            // 和旧版默认内容等价 = 用户没改过，可以直接用新版默认
+            cfgUntouched = await sameCfg(stdout, cfgBackup)
           } catch {
             /* 旧版本没有这个文件，按「改过」处理 */
           }

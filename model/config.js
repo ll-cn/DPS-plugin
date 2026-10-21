@@ -32,6 +32,9 @@ const DEFAULT_YAML = `# ===================== 原神DPS 插件配置 ===========
 # 改完保存即时生效（每次查询会检查文件是否变动，不用重启）。
 # 删掉本文件后，下次查询会自动重新生成这份默认配置。
 
+# 配置版本（插件用它自动升级配置项，一般不用管）
+configVersion: 2
+
 # 数据缓存时长（毫秒）。官方建议 >= 5 分钟，请求太频繁会被 Cloudflare 拦。
 cacheTime: 300000
 
@@ -116,18 +119,35 @@ function splitBlocks(text) {
   return out.map(b => ({ key: b.key, text: b.lines.join('\n').replace(/\s+$/, '') }))
 }
 
-/** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释） */
+/** 配置模板版本：调整默认值 / 加新键时 +1 */
+const CONFIG_VERSION = 2
+
+/** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释），并做版本迁移 */
 function syncConfigFile() {
   try {
     const text = fs.readFileSync(CONFIG_FILE, 'utf8')
-    const have = new Set([...text.matchAll(/^([A-Za-z_][\w-]*):/gm)].map(m => m[1]))
+    // 老配置没有 configVersion，视为版本 1
+    const oldVer = Number((text.match(/^configVersion:\s*(\d+)/m) || [])[1] || 1)
+    let out = text
+    const notes = []
+
+    // ① 补齐缺失的键（连同注释整块追加）
+    const have = new Set([...out.matchAll(/^([A-Za-z_][\w-]*):/gm)].map(m => m[1]))
     const missing = splitBlocks(DEFAULT_YAML).filter(b => !have.has(b.key))
-    if (!missing.length) return
-    const add = missing.map(b => b.text).join('\n\n')
-    fs.writeFileSync(CONFIG_FILE, `${text.replace(/\s+$/, '')}\n\n${add}\n`, 'utf8')
-    globalThis.logger?.mark?.(
-      `[原神DPS] 配置新增默认项：${missing.map(b => b.key).join('、')}`
-    )
+    if (missing.length) {
+      out = `${out.replace(/\s+$/, '')}\n\n${missing.map(b => b.text).join('\n\n')}\n`
+      notes.push(`新增 ${missing.map(b => b.key).join('、')}`)
+    }
+
+    // ② 版本迁移：perPage 默认值 5 → 20（只动还是旧默认 5 的）
+    if (oldVer < 2 && /^perPage:\s*5\s*$/m.test(out)) {
+      out = out.replace(/^perPage:\s*5\s*$/m, `perPage: ${DEFAULTS.perPage}`)
+      notes.push(`perPage 5 → ${DEFAULTS.perPage}`)
+    }
+
+    if (out === text) return
+    fs.writeFileSync(CONFIG_FILE, out, 'utf8')
+    globalThis.logger?.mark?.(`[原神DPS] 已升级配置：${notes.join('；')}（v${oldVer} → v${CONFIG_VERSION}）`)
   } catch (err) {
     globalThis.logger?.warn?.(`[原神DPS] 合并默认配置失败：${err?.message ?? err}`)
   }

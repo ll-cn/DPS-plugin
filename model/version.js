@@ -5,7 +5,7 @@ import path from 'node:path'
 export const PLUGIN_NAME = 'DPS-plugin'
 
 /** 插件版本号（发版时改这里，页脚会自动跟着变） */
-export const VERSION = '1.0.18'
+export const VERSION = '1.0.19'
 
 /** 仓库地址（更新日志末尾显示） */
 export const REPO_URL = 'https://github.com/ll-cn/DPS-plugin.git'
