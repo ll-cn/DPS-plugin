@@ -4,9 +4,9 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 
 数据来源：[mhydps.cn](https://www.mhydps.cn/)
 
-![DPS 配队榜](preview-teams.jpg)
+![DPS 配队榜](https://raw.githubusercontent.com/ll-cn/plugin-preview/main/dps/preview-teams.jpg)
 
-![帮助图（#dps帮助）](preview-help.jpg)
+![帮助图（#dps帮助）](https://raw.githubusercontent.com/ll-cn/plugin-preview/main/dps/preview-help.jpg)
 
 ## 特性
 
