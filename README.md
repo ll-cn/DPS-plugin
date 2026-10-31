@@ -6,6 +6,8 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 
 > 模拟抽卡已拆分为独立插件：[gacha-plugin](https://github.com/ll-cn/gacha-plugin)
 
+![DPS 配队榜](preview-teams.jpg)
+
 ## 特性
 
 - 🖼 **图片渲染**：角色圆形头像、命座角标、金数、伤害/用时、B站视频入口
