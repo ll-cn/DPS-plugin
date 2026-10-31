@@ -173,9 +173,6 @@ export async function replyGitLog(e, title, lines) {
 
 const PLUGIN_NAME = '原神DPS'
 
-/** 抽卡功能已拆出去的仓库地址（更新后如果没装会提示） */
-const GACHA_REPO = 'https://github.com/ll-cn/gacha-plugin.git'
-
 export class genshinDps extends plugin {
   constructor() {
     super({
@@ -874,19 +871,9 @@ export class genshinDps extends plugin {
       }
 
       const after = await gitShortRev()
-      // 抽卡已拆成独立插件：没装就顺手提一句
-      const gachaMissing = !fs.existsSync(path.join(path.dirname(PLUGIN_ROOT), 'gacha-plugin'))
       // 普通模式下 commit 没变就是「已是最新」；强制模式一律报「已强制更新」
       if (!force && before && after && before === after) {
-        await e.reply(
-          [
-            '✅ 已是最新版本',
-            `${PKG_NAME} v${VERSION}｜${after}`,
-            ...(gachaMissing
-              ? ['', '💡 模拟抽卡已拆成独立插件，需要的话执行：', `  git clone ${GACHA_REPO} "plugins/gacha-plugin"`]
-              : [])
-          ].join('\n')
-        )
+        await e.reply(`✅ 已是最新版本\n${PKG_NAME} v${VERSION}｜${after}`)
         return true
       }
 
@@ -899,14 +886,7 @@ export class genshinDps extends plugin {
             : '✅ 更新完成',
           `${before || '（未知）'} → ${after || '（未知）'}`,
           '',
-          '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。',
-          ...(gachaMissing
-            ? [
-                '',
-                '💡 模拟抽卡已拆成独立插件，现在还没装 —— 不装的话抽卡指令会用到旧代码：',
-                `  git clone ${GACHA_REPO} "plugins/gacha-plugin"`
-              ]
-            : [])
+          '★ 重启机器人后新版本才会生效（插件入口是 index.js，不参与热重载）。'
         ].join('\n')
       )
       // 顺便把本次拉到的提交发出来（合并转发，和云崽 #更新日志 一样）
