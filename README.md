@@ -6,6 +6,8 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 
 ![DPS 配队榜](preview-teams.jpg)
 
+![帮助图（#dps帮助）](preview-help.jpg)
+
 ## 特性
 
 - 🖼 **图片渲染**：角色圆形头像、命座角标、金数、伤害/用时、B站视频入口
