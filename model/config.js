@@ -242,5 +242,61 @@ export function needTextOnly() {
   return CONFIG.textOnly === true
 }
 
+/** YAML 标量：能裸写就裸写，否则用 JSON 双引号（JSON 字符串是合法 YAML） */
+function yamlScalar(v) {
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v)
+  const s = String(v ?? '')
+  return /^[\w\u4e00-\u9fa5][\w\u4e00-\u9fa5./-]*$/.test(s) ? s : JSON.stringify(s)
+}
+
+/** 单个配置项的 YAML 文本（对象按缩进展开） */
+function blockText(key, value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const lines = Object.entries(value).map(([k, v]) => `  ${yamlScalar(k)}: ${yamlScalar(v)}`)
+    return lines.length ? `${key}:\n${lines.join('\n')}` : `${key}: {}`
+  }
+  return `${key}: ${yamlScalar(value)}`
+}
+
+/** 把配置项写回 config.yaml（保留注释与顺序），然后立即重载 */
+export function updateConfig(patch = {}) {
+  try {
+    let text = ''
+    try {
+      text = fs.readFileSync(CONFIG_FILE, 'utf8')
+    } catch {
+      text = ''
+    }
+    if (!text.trim()) text = DEFAULT_YAML
+
+    const defaults = new Map(splitBlocks(DEFAULT_YAML).map(b => [b.key, b.text]))
+
+    for (const [key, value] of Object.entries(patch)) {
+      if (key === 'configVersion' || !/^[A-Za-z_][\w-]*$/.test(key)) continue
+      const next = blockText(key, value)
+      const re = new RegExp(`^${key}:[^\\n]*(?:\\n[ \\t]+[^\\n]*)*`, 'm')
+
+      if (re.test(text)) {
+        text = text.replace(re, next)
+        continue
+      }
+      // 文件里没这个键：缺少的项优先沿用默认块的注释
+      const def = defaults.get(key)
+      const body = `${text.replace(/\s+$/, '')}\n\n`
+      text =
+        def && !(value && typeof value === 'object')
+          ? `${body}${def.replace(new RegExp(`^${key}:.*$`, 'm'), next)}\n`
+          : `${body}${next}\n`
+    }
+
+    fs.writeFileSync(CONFIG_FILE, text, 'utf8')
+    loadConfig(true)
+    return true
+  } catch (err) {
+    globalThis.logger?.warn?.(`[原神DPS] 保存配置失败：${err?.message ?? err}`)
+    return false
+  }
+}
+
 ensureConfigFile()
 loadConfig(true)
