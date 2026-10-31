@@ -19,7 +19,7 @@ export class genshinWish extends plugin {
       name: PLUGIN_NAME,
       dsc: '原神模拟抽卡，卡池自动跟随版本更新',
       event: 'message',
-      priority: 50,
+      priority: 10,
       rule: [
         { reg: /^[#＃]?单抽/, fnc: 'one' },
         { reg: /^[#＃]?(抽卡|十连|抽一次|来一发|来十连)/, fnc: 'ten' }
@@ -55,13 +55,13 @@ export class genshinWish extends plugin {
       }
       if (p0.daily.count >= CONFIG.dailyLimit) {
         await e.reply(`今天的 ${CONFIG.dailyLimit} 次抽卡机会用完啦，明天再来～`)
-        return false
+        return true
       }
     }
 
     if (isWeaponPool(poolId) && /定轨/.test(rest)) {
       await e.reply('想定轨请直接发「#定轨苍耀」这种写法，武器名写全就行')
-      return false
+      return true
     }
 
     await ensureFresh()
@@ -75,7 +75,7 @@ export class genshinWish extends plugin {
           '也可以让主人发「#卡池更新」手动刷新。'
         ].join('\n')
       )
-      return false
+      return true
     }
 
     const player = getPlayer(e.group_id, e.user_id)

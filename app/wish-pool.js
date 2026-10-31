@@ -14,7 +14,7 @@ export class genshinWishPool extends plugin {
       name: PLUGIN_NAME,
       dsc: '模拟抽卡的卡池一览、武器定轨与卡池同步',
       event: 'message',
-      priority: 50,
+      priority: 10,
       rule: [
         { reg: /^[#＃]?卡池(更新|刷新|同步)/, fnc: 'update' },
         { reg: /^[#＃]?卡池(列表|一览)?/, fnc: 'banner' },
@@ -32,7 +32,7 @@ export class genshinWishPool extends plugin {
 
     if (!list.length) {
       await e.reply('还没有卡池数据，让主人发「#卡池更新」刷新一下～')
-      return false
+      return true
     }
 
     const info = bannerInfo()
@@ -72,7 +72,7 @@ export class genshinWishPool extends plugin {
     const role = e.sender?.role || e.member?.role
     if (!e.isMaster && role !== 'owner' && role !== 'admin') {
       await e.reply('刷新卡池需要主人或群管权限哦～')
-      return false
+      return true
     }
 
     const tip = await e.reply('正在同步卡池与角色数据，稍等…')
@@ -103,7 +103,7 @@ export class genshinWishPool extends plugin {
     const banner = getPool('weapon')
     if (!banner) {
       await e.reply('还没有武器池数据，稍后再试～')
-      return false
+      return true
     }
 
     const name = String(e.msg || '').replace(/^[#＃]?定轨/, '').trim()
@@ -117,13 +117,13 @@ export class genshinWishPool extends plugin {
           `用法：#定轨${upList[0] || '武器名'}`
         ].join('\n')
       )
-      return false
+      return true
     }
 
     const hit = upList.find(n => n === name || n.includes(name))
     if (!hit) {
       await e.reply(`本期武器池没有「${name}」，可选：${upList.join(' / ')}`)
-      return false
+      return true
     }
 
     const player = getPlayer(e.group_id, e.user_id)

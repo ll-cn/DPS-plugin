@@ -32,7 +32,7 @@ export class genshinWishRecord extends plugin {
       name: PLUGIN_NAME,
       dsc: '模拟抽卡的抽卡记录、出金统计与群内排行',
       event: 'message',
-      priority: 50,
+      priority: 10,
       rule: [
         { reg: /^[#＃]?模拟抽卡统计/, fnc: 'stat' },
         { reg: /^[#＃]?模拟抽卡(记录|历史)/, fnc: 'record' },
@@ -53,7 +53,7 @@ export class genshinWishRecord extends plugin {
     const list = only5 ? player.stars5.slice().reverse() : player.records.slice().reverse()
     if (!list.length) {
       await e.reply(only5 ? '还没有出过五星，去抽几发吧～' : '还没有抽卡记录，发「#抽卡」开抽～')
-      return false
+      return true
     }
 
     const size = 20
@@ -107,7 +107,7 @@ export class genshinWishRecord extends plugin {
 
     if (!total) {
       await e.reply('还没有抽卡记录，发「#抽卡」开抽～')
-      return false
+      return true
     }
 
     const rate = ((star5 / total) * 100).toFixed(2)
@@ -177,7 +177,7 @@ export class genshinWishRecord extends plugin {
     loadConfig()
     if (!e.isGroup) {
       await e.reply('欧皇榜只能在群里看哦～')
-      return false
+      return true
     }
 
     const players = groupPlayers(e.group_id)
@@ -186,7 +186,7 @@ export class genshinWishRecord extends plugin {
 
     if (!players.length) {
       await e.reply('本群还没有人攒够 20 抽的样本，先去抽几发吧～')
-      return false
+      return true
     }
 
     const ranked = players
