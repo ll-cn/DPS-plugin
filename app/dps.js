@@ -56,6 +56,46 @@ function isGitRepo() {
   }
 }
 
+/**
+ * config.yaml 是插件自己会改的文件（配置迁移 / 锅巴保存），
+ * pull 前把内容抽出来、工作区恢复成 HEAD，避免「本地改动会被覆盖」导致更新失败
+ */
+async function takeConfigAside() {
+  const abs = path.join(PLUGIN_ROOT, 'config', 'config.yaml')
+  let text = null
+  try {
+    text = fs.readFileSync(abs, 'utf8')
+  } catch {
+    return null
+  }
+  try {
+    const { stdout } = await execFileAsync('git', ['status', '--porcelain', '--', 'config/config.yaml'], {
+      cwd: PLUGIN_ROOT,
+      timeout: 15000
+    })
+    if (stdout.trim()) {
+      await execFileAsync('git', ['checkout', '--', 'config/config.yaml'], {
+        cwd: PLUGIN_ROOT,
+        timeout: 15000
+      })
+    }
+  } catch {
+    /* 不是 git 仓库之类：交给后面的 pull 去报错 */
+  }
+  return text
+}
+
+/** 把抽走的配置写回（更新后文件可能被 pull 删掉或改写） */
+function putConfigBack(text) {
+  if (text === null || text === undefined) return
+  try {
+    fs.mkdirSync(path.join(PLUGIN_ROOT, 'config'), { recursive: true })
+    fs.writeFileSync(path.join(PLUGIN_ROOT, 'config', 'config.yaml'), text, 'utf8')
+  } catch {
+    /* 写不回去也不该让更新失败 */
+  }
+}
+
 /** 比较配置内容时忽略换行符差异（git 存 LF，Windows 工作区是 CRLF） */
 function normCfg(s) {
   return String(s ?? '').replace(/\r\n/g, '\n').trim()
@@ -829,6 +869,9 @@ export class genshinDps extends plugin {
         }
       }
 
+      // 普通更新：配置是插件自己会改的（配置迁移 / 锅巴保存），先抽走内容再恢复，避免 pull 冲突
+      const cfgAside = force ? null : await takeConfigAside()
+
       let cmdText = 'git pull --ff-only'
       try {
         if (force) {
@@ -854,12 +897,16 @@ export class genshinDps extends plugin {
         }
       } catch (err) {
         // 完整输出写日志，群里给「原因 + git 原文 + 下一步」
+        putConfigBack(cfgAside)
         const detail = String(err?.stderr || err?.stdout || err?.message || err).trim()
         log('error', `更新失败(${force ? '强制' : '普通'})：${detail.slice(0, 600)}｜目录 ${PLUGIN_ROOT}`)
         const { reason } = gitFailReason(detail)
         await e.reply(updateFailMsg({ force, cmdText, detail, before, reason }))
         return true
       }
+
+      // 配置原样写回（pull 可能删掉或改写了它）
+      putConfigBack(cfgAside)
 
       // 用户改过的配置要保留；没改过就用新版默认（能拿到调整过的默认值）
       if (cfgBackup !== null && !cfgUntouched) {
