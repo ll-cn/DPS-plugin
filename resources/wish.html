@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { zoom: {{cssZoom}}; }
+
+    body {
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: #0b101c;
+      color: #e8edf7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #container {
+      display: inline-block;
+      min-width: 380px;
+      padding: 30px 32px 22px;
+      background:
+        radial-gradient(ellipse 720px 420px at 8% -10%, rgba(120, 92, 220, .34) 0%, rgba(120, 92, 220, 0) 62%),
+        radial-gradient(ellipse 720px 420px at 96% -4%, rgba(64, 156, 214, .28) 0%, rgba(64, 156, 214, 0) 62%),
+        radial-gradient(ellipse 900px 460px at 50% 118%, rgba(212, 168, 96, .16) 0%, rgba(212, 168, 96, 0) 66%),
+        linear-gradient(168deg, #131a2c 0%, #0d1322 58%, #101728 100%);
+    }
+
+    /* ---------------- 顶部 ---------------- */
+    .head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, .09);
+    }
+    .head .title {
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: .5px;
+      color: #f3f6ff;
+    }
+    .head .title .pool { color: #ffd27a; }
+    .head .sub {
+      margin-top: 9px;
+      font-size: 14px;
+      color: #93a0ba;
+      letter-spacing: .2px;
+    }
+    .head .sub .hl { color: #cbb7ff; }
+    .head .right { text-align: right; flex: none; }
+    .head .pity {
+      font-size: 15px;
+      color: #ffd27a;
+      letter-spacing: .3px;
+    }
+    .head .path {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #7c88a3;
+    }
+
+    /* ---------------- 卡片区 ---------------- */
+    .grid {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .card {
+      position: relative;
+      width: 108px;
+      height: 208px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #2b3350 0%, #171d2e 100%);
+      border: 1px solid rgba(255, 255, 255, .1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card .art {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 34%, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 68%);
+    }
+    .card .art img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+    .card .art .fallback {
+      font-size: 34px;
+      color: rgba(255, 255, 255, .5);
+      font-weight: 500;
+    }
+
+    .card .meta {
+      padding: 7px 4px 9px;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(8, 12, 22, .35) 0%, rgba(8, 12, 22, .92) 46%);
+    }
+    .card .name {
+      font-size: 13px;
+      color: #e4eaf7;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: .2px;
+    }
+    .card .stars {
+      margin-top: 4px;
+      font-size: 9px;
+      letter-spacing: 1px;
+    }
+
+    /* 三星 */
+    .card.r3 { border-color: rgba(110, 160, 220, .34); }
+    .card.r3 .stars { color: #7fb4e8; }
+
+    /* 四星 */
+    .card.r4 {
+      border-color: rgba(176, 132, 255, .55);
+      background: linear-gradient(180deg, #3b2f67 0%, #1d1830 100%);
+      box-shadow: inset 0 0 22px rgba(154, 108, 255, .28);
+    }
+    .card.r4 .stars { color: #c9a0ff; }
+
+    /* 五星 */
+    .card.r5 {
+      border-color: rgba(255, 205, 112, .78);
+      background: linear-gradient(180deg, #5c4420 0%, #2a1f10 100%);
+      box-shadow: inset 0 0 26px rgba(255, 196, 92, .34), 0 0 0 1px rgba(255, 222, 150, .2);
+    }
+    .card.r5 .stars { color: #ffd27a; }
+    .card.r5 .name { color: #ffe9be; font-size: 14px; letter-spacing: .4px; }
+
+    .card .badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      padding: 2px 7px;
+      font-size: 10px;
+      line-height: 1.5;
+      border-radius: 4px;
+      background: linear-gradient(135deg, #ffcf6b, #e8a33c);
+      color: #3a2606;
+      letter-spacing: .5px;
+    }
+    .card .pitytag {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      padding: 2px 6px;
+      font-size: 10px;
+      line-height: 1.5;
+      border-radius: 4px;
+      background: rgba(6, 10, 18, .8);
+      border: 1px solid rgba(255, 214, 130, .5);
+      color: #ffd88f;
+    }
+
+    /* 单抽放大 */
+    .grid.single .card { width: 200px; height: 330px; border-radius: 12px; }
+    .grid.single .card .name { font-size: 20px; }
+    .grid.single .card .stars { font-size: 15px; margin-top: 7px; }
+    .grid.single .card .meta { padding: 14px 8px 16px; }
+    .grid.single .card .badge { font-size: 13px; padding: 3px 10px; }
+    .grid.single .card .pitytag { font-size: 13px; padding: 3px 9px; }
+
+    /* ---------------- 底部 ---------------- */
+    .foot {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #6f7b95;
+      letter-spacing: .2px;
+    }
+    .foot > div { flex: none; }
+    .grid.single ~ .foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .foot .ver { color: #9fb0cd; }
+    .foot .dot { color: #4a5570; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="head">
+      <div class="left">
+        <div class="title"><span class="pool">{{poolLabel}}</span> · 抽卡</div>
+        <div class="sub">
+          {{if upText}}UP：<span class="hl">{{upText}}</span>{{/if}}
+          {{if rangeText}}<span class="hl"> ｜ </span>{{rangeText}}{{/if}}
+        </div>
+      </div>
+      <div class="right">
+        {{if pity}}<div class="pity">{{pity}}</div>{{/if}}
+        <div class="path">{{title}}</div>
+      </div>
+    </div>
+
+    <div class="grid {{if items.length === 1}}single{{/if}}">
+      {{each items item}}
+      <div class="card r{{item.rank}}">
+        <div class="art">
+          {{if item.src}}
+            <img src="{{item.src}}" alt="{{item.name}}" />
+          {{else}}
+            <div class="fallback">{{item.name.slice(0, 1)}}</div>
+          {{/if}}
+        </div>
+        {{if item.isUp}}<div class="badge">UP</div>{{/if}}
+        {{if item.pity}}<div class="pitytag">{{item.pity}} 抽</div>{{/if}}
+        <div class="meta">
+          <div class="name">{{item.name}}</div>
+          <div class="stars">{{item.star}}</div>
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="foot">
+      <div>模拟抽卡 · 结果仅供娱乐，不代表真实概率</div>
+      <div>{{@versionHtml}}</div>
+    </div>
+  </div>
+</body>
+</html>

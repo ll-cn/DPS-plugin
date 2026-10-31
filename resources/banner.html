@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { zoom: {{cssZoom}}; }
+
+    body {
+      font-family: "HarmonyOS Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: #0b101c;
+      color: #e8edf7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #container {
+      display: inline-block;
+      width: 960px;
+      padding: 30px 32px 22px;
+      background:
+        radial-gradient(ellipse 700px 400px at 6% -10%, rgba(120, 92, 220, .3) 0%, rgba(120, 92, 220, 0) 62%),
+        radial-gradient(ellipse 700px 400px at 98% -6%, rgba(64, 156, 214, .26) 0%, rgba(64, 156, 214, 0) 62%),
+        linear-gradient(168deg, #131a2c 0%, #0d1322 58%, #101728 100%);
+    }
+
+    .head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, .09);
+    }
+    .head .title { font-size: 26px; font-weight: 500; color: #f3f6ff; letter-spacing: .5px; }
+    .head .title .ver { color: #ffd27a; }
+    .head .sub { margin-top: 8px; font-size: 13px; color: #93a0ba; }
+
+    .pools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; align-items: start; }
+
+    .pool {
+      padding: 16px 18px 14px;
+      border-radius: 10px;
+      background: linear-gradient(165deg, rgba(43, 51, 80, .85) 0%, rgba(20, 26, 42, .92) 100%);
+      border: 1px solid rgba(255, 255, 255, .1);
+    }
+    .pool.weapon { border-color: rgba(255, 205, 112, .32); }
+    .pool.standard { border-color: rgba(126, 176, 226, .3); }
+
+    .pool .top { display: flex; align-items: center; justify-content: space-between; }
+    .pool .label {
+      font-size: 13px;
+      padding: 2px 9px;
+      border-radius: 5px;
+      background: rgba(140, 120, 255, .18);
+      border: 1px solid rgba(160, 140, 255, .34);
+      color: #c3b4ff;
+      letter-spacing: .4px;
+    }
+    .pool.weapon .label { background: rgba(255, 200, 100, .14); border-color: rgba(255, 205, 112, .38); color: #ffd27a; }
+    .pool.standard .label { background: rgba(100, 170, 230, .14); border-color: rgba(126, 176, 226, .36); color: #9ecbf0; }
+    .pool .left { font-size: 13px; color: #8d9ab5; }
+
+    .pool .name {
+      margin-top: 11px;
+      font-size: 17px;
+      color: #f0f4ff;
+      letter-spacing: .5px;
+    }
+    .pool .name .quote { color: #ffd27a; }
+
+    .avatars { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+    .av {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 10px 5px 5px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+    .av.r5 { border-color: rgba(255, 205, 112, .5); background: rgba(255, 196, 92, .09); }
+    .av.r4 { border-color: rgba(176, 132, 255, .42); background: rgba(154, 108, 255, .08); }
+
+    .av .pic {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex: none;
+      background: rgba(255, 255, 255, .08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: rgba(255, 255, 255, .55);
+    }
+    .av .pic img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+    .av .txt { line-height: 1.35; }
+    .av .cn { font-size: 13px; color: #e6ecf8; white-space: nowrap; }
+    .av .el { font-size: 11px; color: #8d9ab5; white-space: nowrap; }
+    .av.r5 .el { color: #e8b96a; }
+
+    .more {
+      align-self: center;
+      font-size: 12px;
+      color: #7b88a2;
+      padding: 0 4px;
+      white-space: nowrap;
+    }
+
+    .pool .time {
+      margin-top: 13px;
+      padding-top: 11px;
+      border-top: 1px dashed rgba(255, 255, 255, .1);
+      font-size: 12px;
+      color: #7b88a2;
+      letter-spacing: .2px;
+    }
+
+    .foot {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, .08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #6f7b95;
+    }
+    .foot .ver { color: #9fb0cd; }
+    .foot .dot { color: #4a5570; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="head">
+      <div>
+        <div class="title">当前卡池{{if version}} <span class="ver">v{{version}}</span>{{/if}}</div>
+        <div class="sub">{{updatedText}}</div>
+      </div>
+      <div class="sub">抽卡：#抽卡 / #单抽 / #抽卡 武器</div>
+    </div>
+
+    <div class="pools">
+      {{each pools pool}}
+      <div class="pool {{pool.cls}}">
+        <div class="top">
+          <div class="label">{{pool.label}}</div>
+          <div class="left">{{pool.leftText}}</div>
+        </div>
+        <div class="name">{{if pool.name}}<span class="quote">「{{pool.name}}」</span>{{/if}}{{pool.short}}</div>
+        <div class="avatars">
+          {{each pool.items item}}
+          <div class="av r{{item.rank}}">
+            <div class="pic">
+              {{if item.src}}<img src="{{item.src}}" alt="{{item.name}}" />{{else}}{{item.name.slice(0, 1)}}{{/if}}
+            </div>
+            <div class="txt">
+              <div class="cn">{{item.name}}</div>
+              <div class="el">{{item.rank}}★{{if item.element}} · {{item.element}}{{/if}}</div>
+            </div>
+          </div>
+          {{/each}}
+          {{if pool.more}}<div class="more">+{{pool.more}}</div>{{/if}}
+        </div>
+        <div class="time">{{pool.timeText}}</div>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="foot">
+      <div>卡池数据来自官方祈愿公告，随版本自动更新</div>
+      <div>{{@versionHtml}}</div>
+    </div>
+  </div>
+</body>
+</html>

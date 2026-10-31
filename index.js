@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { startScheduler } from './model/wish/banner.js'
 
 /** app 目录：与本文件同级 */
 const APP_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'app')
@@ -32,5 +33,14 @@ files.forEach((file, i) => {
   if (typeof cls === 'function') apps[name] = cls
   else logger?.warn?.(`[原神DPS] ${file} 里没有找到插件类，已跳过`)
 })
+
+/**
+ * 抽卡功能的卡池定时刷新（app 目录里的 wish*.js 负责指令，这里负责后台同步）
+ */
+try {
+  startScheduler()
+} catch (err) {
+  logger?.warn?.(`[原神DPS] 卡池定时刷新启动失败：${err?.message ?? err}`)
+}
 
 export { apps }

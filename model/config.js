@@ -14,7 +14,10 @@ const DEFAULTS = {
   lowCost: 2,
   jpegQuality: 90,
   imageScale: 2,
-  textOnly: false
+  textOnly: false,
+  dailyLimit: 10,
+  refreshMinutes: 360,
+  pityTip: true
 }
 
 const DEFAULT_ALIAS = {
@@ -69,6 +72,17 @@ alias:
   草神: 纳西妲
   雷神: 雷电将军
   冰神: 至冬女皇
+
+# ===================== 模拟抽卡 =====================
+
+# 每人每天可抽次数，一次十连算 1 次（0 = 不限制）
+dailyLimit: 10
+
+# 卡池自动刷新间隔（分钟，0 = 只在启动和卡池过期时刷新）
+refreshMinutes: 360
+
+# 抽卡卡片底部是否显示保底进度
+pityTip: true
 `
 
 export const CONFIG = { ...DEFAULTS }
@@ -84,6 +98,12 @@ try {
 function posNum(v, def) {
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? n : def
+}
+
+/** 允许 0 的正整数（0 = 关闭限次 / 关闭定时刷新） */
+function zeroNum(v, def) {
+  const n = Number(v)
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : def
 }
 
 /** 生成默认配置文件（缺失或空文件时） */
@@ -120,7 +140,7 @@ function splitBlocks(text) {
 }
 
 /** 配置模板版本：调整默认值 / 加新键时 +1 */
-const CONFIG_VERSION = 2
+const CONFIG_VERSION = 3
 
 /** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释），并做版本迁移 */
 function syncConfigFile() {
@@ -143,6 +163,16 @@ function syncConfigFile() {
     if (oldVer < 2 && /^perPage:\s*5\s*$/m.test(out)) {
       out = out.replace(/^perPage:\s*5\s*$/m, `perPage: ${DEFAULTS.perPage}`)
       notes.push(`perPage 5 → ${DEFAULTS.perPage}`)
+    }
+
+    // ③ 把配置版本写回文件，下次才知道有没有跨版本
+    if (oldVer < CONFIG_VERSION) {
+      if (/^configVersion:\s*\d+/m.test(out)) {
+        out = out.replace(/^configVersion:\s*\d+/m, `configVersion: ${CONFIG_VERSION}`)
+      } else {
+        out = `configVersion: ${CONFIG_VERSION}\n${out}`
+      }
+      notes.push(`配置版本 v${oldVer} → v${CONFIG_VERSION}`)
     }
 
     if (out === text) return
@@ -194,6 +224,9 @@ export function loadConfig(force = false) {
   )
   CONFIG.imageScale = Math.min(3, Math.max(1, Number(raw.imageScale) || DEFAULTS.imageScale))
   CONFIG.textOnly = raw.textOnly === true || raw.textOnly === 'true'
+  CONFIG.dailyLimit = zeroNum(raw.dailyLimit, DEFAULTS.dailyLimit)
+  CONFIG.refreshMinutes = zeroNum(raw.refreshMinutes, DEFAULTS.refreshMinutes)
+  CONFIG.pityTip = raw.pityTip !== false && raw.pityTip !== 'false'
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})
