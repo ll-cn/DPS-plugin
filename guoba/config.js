@@ -7,13 +7,10 @@ const NUM_FIELDS = {
   perPage: [1, 50, 20],
   maxPage: [1, 100, 30],
   lowCost: [0, 10, 2],
-  jpegQuality: [30, 100, 90],
-  dailyLimit: [0, 100, 10],
-  refreshMinutes: [0, 1440, 360],
-  recallNoGold: [0, 120, 8]
+  jpegQuality: [30, 100, 90]
 }
 
-const BOOL_FIELDS = ['textOnly', 'pityTip']
+const BOOL_FIELDS = ['textOnly']
 
 function toNum(v, min, max, def) {
   const n = Number(v)
@@ -54,11 +51,7 @@ export async function getConfigData() {
     aliasText: aliasText(),
     imageScale: CONFIG.imageScale,
     jpegQuality: CONFIG.jpegQuality,
-    textOnly: CONFIG.textOnly,
-    dailyLimit: CONFIG.dailyLimit,
-    refreshMinutes: CONFIG.refreshMinutes,
-    pityTip: CONFIG.pityTip,
-    recallNoGold: CONFIG.recallNoGold
+    textOnly: CONFIG.textOnly
   }
 }
 

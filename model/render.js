@@ -12,9 +12,6 @@ export const RES_DIR = path.join(__dirname, '..', 'resources')
 export const TPL_TEAMS = path.join(RES_DIR, 'teams.html')
 export const TPL_WEIZHAN = path.join(RES_DIR, 'weizhan.html')
 export const TPL_HELP = path.join(RES_DIR, 'help.html')
-export const TPL_WISH = path.join(RES_DIR, 'wish.html')
-export const TPL_BANNER = path.join(RES_DIR, 'banner.html')
-export const TPL_RECORD = path.join(RES_DIR, 'record.html')
 
 export const PLUGIN_ROOT = path.dirname(RES_DIR)
 export const PLUGIN_DIR_NAME = path.basename(PLUGIN_ROOT)
@@ -33,10 +30,7 @@ export function missingTplList() {
   return [
     [TPL_TEAMS, 'resources/teams.html'],
     [TPL_WEIZHAN, 'resources/weizhan.html'],
-    [TPL_HELP, 'resources/help.html'],
-    [TPL_WISH, 'resources/wish.html'],
-    [TPL_BANNER, 'resources/banner.html'],
-    [TPL_RECORD, 'resources/record.html']
+    [TPL_HELP, 'resources/help.html']
   ]
     .filter(([p]) => {
       try {

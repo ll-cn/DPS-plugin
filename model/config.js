@@ -14,11 +14,7 @@ const DEFAULTS = {
   lowCost: 2,
   jpegQuality: 90,
   imageScale: 2,
-  textOnly: false,
-  dailyLimit: 10,
-  refreshMinutes: 360,
-  pityTip: true,
-  recallNoGold: 8
+  textOnly: false
 }
 
 const DEFAULT_ALIAS = {
@@ -37,7 +33,7 @@ const DEFAULT_YAML = `# ===================== 原神DPS 插件配置 ===========
 # 删掉本文件后，下次查询会自动重新生成这份默认配置。
 
 # 配置版本（插件用它自动升级配置项，一般不用管）
-configVersion: 4
+configVersion: 5
 
 # 数据缓存时长（毫秒）。官方建议 >= 5 分钟，请求太频繁会被 Cloudflare 拦。
 cacheTime: 300000
@@ -73,20 +69,6 @@ alias:
   草神: 纳西妲
   雷神: 雷电将军
   冰神: 至冬女皇
-
-# ===================== 模拟抽卡 =====================
-
-# 每人每天可抽次数，一次十连算 1 次（0 = 不限制）
-dailyLimit: 10
-
-# 卡池自动刷新间隔（分钟，0 = 只在启动和卡池过期时刷新）
-refreshMinutes: 360
-
-# 抽卡卡片底部是否显示保底进度
-pityTip: true
-
-# 没出五星（金）时，抽卡结果自动撤回（秒；0 = 不撤回，最高 120）
-recallNoGold: 8
 `
 
 export const CONFIG = { ...DEFAULTS }
@@ -144,7 +126,29 @@ function splitBlocks(text) {
 }
 
 /** 配置模板版本：调整默认值 / 加新键时 +1 */
-const CONFIG_VERSION = 4
+const CONFIG_VERSION = 5
+
+/** 删掉某个顶层键（连同它上面的连续注释和缩进子项） */
+function dropKeyBlock(text, key) {
+  const re = new RegExp(`^${key}:`)
+  const lines = text.split('\n')
+  const out = []
+  for (let i = 0; i < lines.length; i++) {
+    if (!re.test(lines[i])) {
+      out.push(lines[i])
+      continue
+    }
+    // 先把上面空着的行、注释行一起去掉（注释属于被删掉的这一项）
+    while (out.length) {
+      const last = out[out.length - 1]
+      if (!last.trim() || /^#/.test(last)) out.pop()
+      else break
+    }
+    // 跳过该键的缩进子行
+    while (i + 1 < lines.length && /^[ \t]+\S/.test(lines[i + 1])) i++
+  }
+  return out.join('\n')
+}
 
 /** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释），并做版本迁移 */
 function syncConfigFile() {
@@ -169,7 +173,17 @@ function syncConfigFile() {
       notes.push(`perPage 5 → ${DEFAULTS.perPage}`)
     }
 
-    // ③ 把配置版本写回文件，下次才知道有没有跨版本
+    // ③ 抽卡功能已拆到 gacha-plugin，旧配置里的抽卡项（连注释）一并清掉
+    if (oldVer < 5) {
+      const before = out
+      for (const key of ['dailyLimit', 'refreshMinutes', 'pityTip', 'recallNoGold']) {
+        out = dropKeyBlock(out, key)
+      }
+      out = out.replace(/\s+$/, '\n')
+      if (out !== before) notes.push('移除已拆分的抽卡配置项')
+    }
+
+    // ④ 把配置版本写回文件，下次才知道有没有跨版本
     if (oldVer < CONFIG_VERSION) {
       if (/^configVersion:\s*\d+/m.test(out)) {
         out = out.replace(/^configVersion:\s*\d+/m, `configVersion: ${CONFIG_VERSION}`)
@@ -228,10 +242,6 @@ export function loadConfig(force = false) {
   )
   CONFIG.imageScale = Math.min(3, Math.max(1, Number(raw.imageScale) || DEFAULTS.imageScale))
   CONFIG.textOnly = raw.textOnly === true || raw.textOnly === 'true'
-  CONFIG.dailyLimit = zeroNum(raw.dailyLimit, DEFAULTS.dailyLimit)
-  CONFIG.refreshMinutes = zeroNum(raw.refreshMinutes, DEFAULTS.refreshMinutes)
-  CONFIG.pityTip = raw.pityTip !== false && raw.pityTip !== 'false'
-  CONFIG.recallNoGold = Math.min(120, zeroNum(raw.recallNoGold, DEFAULTS.recallNoGold))
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})
