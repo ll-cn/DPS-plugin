@@ -14,6 +14,7 @@ export const TPL_WEIZHAN = path.join(RES_DIR, 'weizhan.html')
 export const TPL_HELP = path.join(RES_DIR, 'help.html')
 export const TPL_WISH = path.join(RES_DIR, 'wish.html')
 export const TPL_BANNER = path.join(RES_DIR, 'banner.html')
+export const TPL_RECORD = path.join(RES_DIR, 'record.html')
 
 export const PLUGIN_ROOT = path.dirname(RES_DIR)
 export const PLUGIN_DIR_NAME = path.basename(PLUGIN_ROOT)
@@ -34,7 +35,8 @@ export function missingTplList() {
     [TPL_WEIZHAN, 'resources/weizhan.html'],
     [TPL_HELP, 'resources/help.html'],
     [TPL_WISH, 'resources/wish.html'],
-    [TPL_BANNER, 'resources/banner.html']
+    [TPL_BANNER, 'resources/banner.html'],
+    [TPL_RECORD, 'resources/record.html']
   ]
     .filter(([p]) => {
       try {
@@ -55,7 +57,7 @@ export function renderFailMsg() {
       '',
       '插件必须把整个仓库克隆到 plugins/ 下（不能只放 js）：',
       `  git clone https://github.com/ll-cn/DPS-plugin.git "plugins/${PLUGIN_DIR_NAME}"`,
-      '它依赖 resources/ 下的 3 个 html 模板，只放 js 是跑不起图的。'
+      '它依赖 resources/ 下的 html 模板，只放 js 是跑不起图的。'
     ].join('\n')
   }
   return '😵 图片生成失败，请检查渲染后端（puppeteer/shotium）是否正常。'
