@@ -84,6 +84,31 @@ async function sameCfg(a, b) {
   }
 }
 
+/** 更新失败回执：原因 + git 原始输出 + 下一步（对齐云崽自带 #更新 的样式） */
+function updateFailMsg({ force, cmdText, detail, before, reason }) {
+  const lines = String(detail || '')
+    .split('\n')
+    .map(l => l.replace(/\s+$/, ''))
+    .filter(l => l.trim())
+    .filter(l => !/^\s*(From|来自)\s/i.test(l))
+  const remote = (String(detail).match(/\b[0-9a-f]{6,40}\.\.([0-9a-f]{6,40})\b/) || [])[1] || ''
+  const body = lines.slice(0, 14).map(l => l.slice(0, 160))
+  if (lines.length > body.length) body.push('…')
+  if (!body.length) body.push('（git 没有任何输出）')
+
+  return [
+    `😵 ${force ? '强制更新' : '更新'}失败：${reason}`,
+    `Command failed: ${cmdText}`,
+    `来自 ${REPO_URL}`,
+    ...body,
+    '',
+    `更新 ${before || '（未知）'}..${remote || '最新'}`,
+    force
+      ? '若仍失败，检查机器人的网络与磁盘权限'
+      : '若修改过文件请手动更新，否则发送 #dps强制更新'
+  ].join('\n')
+}
+
 /** 把 git 的报错翻译成一句人话 + 建议 */
 function gitFailReason(detail) {
   const d = String(detail || '')
@@ -804,6 +829,7 @@ export class genshinDps extends plugin {
         }
       }
 
+      let cmdText = 'git pull --ff-only'
       try {
         if (force) {
           const { stdout: br } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
@@ -811,6 +837,7 @@ export class genshinDps extends plugin {
             timeout: 15000
           })
           const branch = br.trim() || 'main'
+          cmdText = `git reset --hard origin/${branch}`
           await execFileAsync('git', ['fetch', '--all', '--prune'], {
             cwd: PLUGIN_ROOT,
             timeout: 60000
@@ -826,11 +853,11 @@ export class genshinDps extends plugin {
           })
         }
       } catch (err) {
-        // 详细原因写日志；群里给一句能看懂的原因 + 建议
+        // 完整输出写日志，群里给「原因 + git 原文 + 下一步」
         const detail = String(err?.stderr || err?.stdout || err?.message || err).trim()
-        log('error', `更新失败(${force ? '强制' : '普通'})：${detail.slice(0, 400)}｜目录 ${PLUGIN_ROOT}`)
-        const { reason, tip } = gitFailReason(detail)
-        await e.reply(`😵 ${force ? '强制更新' : '更新'}失败：${reason}\n${tip}`)
+        log('error', `更新失败(${force ? '强制' : '普通'})：${detail.slice(0, 600)}｜目录 ${PLUGIN_ROOT}`)
+        const { reason } = gitFailReason(detail)
+        await e.reply(updateFailMsg({ force, cmdText, detail, before, reason }))
         return true
       }
 
