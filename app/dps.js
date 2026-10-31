@@ -910,11 +910,7 @@ export class genshinDps extends plugin {
 
       // 用户改过的配置要保留；没改过就用新版默认（能拿到调整过的默认值）
       if (cfgBackup !== null && !cfgUntouched) {
-        try {
-          fs.writeFileSync(cfgFile, cfgBackup)
-        } catch {
-          /* 忽略 */
-        }
+        putConfigBack(cfgBackup)
       }
 
       const after = await gitShortRev()
