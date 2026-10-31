@@ -4,8 +4,6 @@ Yunzai / TRSS-Yunzai 插件：原神配队 **DPS 榜** + **危战榜**，图片�
 
 数据来源：[mhydps.cn](https://www.mhydps.cn/)
 
-> 模拟抽卡已拆分为独立插件：[gacha-plugin](https://github.com/ll-cn/gacha-plugin)
-
 ![DPS 配队榜](preview-teams.jpg)
 
 ## 特性
@@ -124,31 +122,6 @@ alias:              # 角色俗称 → 官方名
   插件会按顺序试遍所有后端；都失败时再自动改用系统 Chrome / Edge 重试一次。
   所以浏览器相关的东西**不用在插件里配**，把云崽那台配好即可。
   图片默认按 **2 倍像素**渲染（`imageScale`），手机上字更清楚；嫌图太大就改成 `1`。
-
-## 更新记录
-
-### v1.2.0 · 模拟抽卡拆成独立插件
-
-- **抽卡相关的 app / model / 模板 / 配置项 / 锅巴分组全部移除**，改由
-  [gacha-plugin](https://github.com/ll-cn/gacha-plugin) 提供
-- 指令一个没变（`#抽卡`、`#卡池`、`#欧皇榜` 等照旧），只是插件更新命令变成 `#抽卡插件更新`
-- 旧配置里的 `dailyLimit` / `refreshMinutes` / `pityTip` / `recallNoGold` 会自动清理掉
-- 抽卡记录与卡池缓存（`data/wish`）由新插件**首次启动时自动迁移**，不用手动复制
-
-### v1.1.0 · 内置模拟抽卡
-
-- **抽卡**：角色池 0.6% / 74 抽软保底 / 90 抽硬保底、大小保底 50:50；武器池 0.7% / 63 / 80、
-  UP 75%、定轨值 2；常驻池无 UP。四星 5.1%、每 10 抽必出。各池独立计数，角色池 1 与池 2 共享保底。
-  100 万抽实测出金率 1.61%、平均 62.09 抽一个五星。
-- **卡池自动更新**：卡池信息来自米游社官方祈愿公告（`getAnnList` / `getAnnContent`，公开免鉴权），
-  角色武器元数据来自 yatta。启动 8 秒后、每 6 小时、抽卡前发现卡池过期时各刷一次，
-  历史卡池累积写进 `data/wish/banners.json`。新角色在角色库更新前先用文字卡占位。
-- **记录与统计**：`#模拟抽卡记录`（翻页 / 只看五星）、`#模拟抽卡统计`（出金率、平均抽数、歪率、
-  各池垫抽）、`#欧皇榜`。按「群 + QQ」隔离，存本地 json，抽卡结束立即落盘。
-- **优先级**：抽卡相关 priority 50，接管 genshin 自带抽卡的 `#抽卡` / `#单抽` / `#十连` / `#定轨`。
-- **结构**：新增 `app/{wish,wish-record,wish-pool}.js`、`model/wish/*`（含内置 `meta-static.json`
-  角色武器快照）、`resources/{wish,banner}.html`；帮助并入 `#dps帮助`，新增两个分组。
-- **配置**：新增 `dailyLimit` / `refreshMinutes` / `pityTip`；`CONFIG_VERSION` 升到 3，并把版本号写回文件。
 
 ## 依赖说明
 

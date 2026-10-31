@@ -97,9 +97,6 @@ export class genshinDpsHelp extends plugin {
       '#dps更新 / #dps强制更新      更新插件（仅主人）',
       '#dps更新日志                 查看版本提交记录',
       '━━━━━━━━━━━━━━',
-      '【抽卡】已拆分为独立插件',
-      '发 #抽卡帮助 查看（gacha-plugin）',
-      '━━━━━━━━━━━━━━',
       versionLine()
     ].join('\n')
   }
