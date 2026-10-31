@@ -16,9 +16,9 @@ export class genshinWishPool extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        { reg: /^[#＃]?卡池(更新|刷新|同步)(?=$|[\s@\[])/, fnc: 'update' },
-        { reg: /^[#＃]?卡池(列表|一览)?(?=$|[\s@\[])/, fnc: 'banner' },
-        { reg: /^[#＃]?定轨(?=$|[\s@\[])/, fnc: 'pick' }
+        { reg: /^[#＃]?卡池(更新|刷新|同步)/, fnc: 'update' },
+        { reg: /^[#＃]?卡池(列表|一览)?/, fnc: 'banner' },
+        { reg: /^[#＃]?定轨/, fnc: 'pick' }
       ]
     })
   }
@@ -62,7 +62,7 @@ export class genshinWishPool extends plugin {
     }
 
     lines.push(SPLIT)
-    lines.push('抽卡：#抽卡 / #单抽 / #抽卡 武器 / #抽卡 常驻')
+    lines.push('抽卡：#抽卡 / #单抽 / #抽卡武器 / #抽卡常驻')
     await e.reply(lines.join('\n').replace(/\n+$/, ''))
     return true
   }
@@ -114,7 +114,7 @@ export class genshinWishPool extends plugin {
         [
           `「${banner.name || '神铸赋形'}」可定轨武器：${upList.join(' / ')}`,
           '',
-          `用法：#定轨 ${upList[0] || '武器名'}`
+          `用法：#定轨${upList[0] || '武器名'}`
         ].join('\n')
       )
       return false

@@ -21,8 +21,8 @@ export class genshinWish extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        { reg: /^[#＃]?单抽(?=$|[\s@\[])/, fnc: 'one' },
-        { reg: /^[#＃]?(抽卡|十连|抽一次|来一发|来十连)(?=$|[\s@\[])/, fnc: 'ten' }
+        { reg: /^[#＃]?单抽/, fnc: 'one' },
+        { reg: /^[#＃]?(抽卡|十连|抽一次|来一发|来十连)/, fnc: 'ten' }
       ]
     })
   }
@@ -60,7 +60,7 @@ export class genshinWish extends plugin {
     }
 
     if (isWeaponPool(poolId) && /定轨/.test(rest)) {
-      await e.reply('想定轨请直接发「#定轨 武器名」，例如「#定轨 苍耀」')
+      await e.reply('想定轨请直接发「#定轨苍耀」这种写法，武器名写全就行')
       return false
     }
 

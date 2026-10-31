@@ -34,9 +34,9 @@ export class genshinWishRecord extends plugin {
       event: 'message',
       priority: 50,
       rule: [
-        { reg: /^[#＃]?模拟抽卡统计(?=$|[\s@\[])/, fnc: 'stat' },
-        { reg: /^[#＃]?模拟抽卡(记录|历史)(?=$|[\s@\[])/, fnc: 'record' },
-        { reg: /^[#＃]?欧皇榜(?=$|[\s@\[])/, fnc: 'rank' }
+        { reg: /^[#＃]?模拟抽卡统计/, fnc: 'stat' },
+        { reg: /^[#＃]?模拟抽卡(记录|历史)/, fnc: 'record' },
+        { reg: /^[#＃]?欧皇榜/, fnc: 'rank' }
       ]
     })
   }
@@ -66,7 +66,7 @@ export class genshinWishRecord extends plugin {
       title: only5 ? '✨ 五星记录' : '📜 模拟抽卡记录',
       sub: `共 ${list.length} 条 · 第 ${cur}/${totalPage} 页`,
       right: '',
-      hint: only5 ? '发「#模拟抽卡记录 页码」翻页' : '只看五星发「#模拟抽卡记录 五星」',
+      hint: only5 ? '发「#模拟抽卡记录2」翻页' : '只看五星发「#模拟抽卡记录五星」',
       list: slice.map(item => ({
         time: shortTime(item.t),
         stars: item.rank === 5 ? '★★★★★' : '★★★★',
@@ -94,7 +94,7 @@ export class genshinWishRecord extends plugin {
     }
 
     lines.push(SPLIT)
-    lines.push(only5 ? '发「#模拟抽卡记录 页码」翻页' : '只看五星发「#模拟抽卡记录 五星」')
+    lines.push(only5 ? '发「#模拟抽卡记录2」翻页' : '只看五星发「#模拟抽卡记录五星」')
     await e.reply(`${lines.join('\n')}\n（${renderFailBrief()}）`)
     return true
   }
