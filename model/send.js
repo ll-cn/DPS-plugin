@@ -25,3 +25,34 @@ export async function sendImage(e, img) {
   }
   return e.reply(img)
 }
+
+/** 从 sendMsg / e.reply 的返回值里取消息 id（不同适配器结构不一样） */
+export function msgIdOf(res) {
+  if (!res) return null
+  if (Array.isArray(res)) return msgIdOf(res[0])
+  if (typeof res === 'number' || typeof res === 'string') return res
+  return res.message_id ?? res.msg_id ?? res.data?.message_id ?? null
+}
+
+/**
+ * 延迟撤回刚发出去的消息（撤回失败只记日志，不影响抽卡结果已落库）
+ * @returns 是否真的安排了撤回
+ */
+export function recallLater(e, res, seconds) {
+  const sec = Number(seconds)
+  const id = msgIdOf(res)
+  if (!id || !(sec > 0)) return false
+
+  const timer = setTimeout(async () => {
+    try {
+      if (e?.group?.recallMsg) await e.group.recallMsg(id)
+      else if (e?.friend?.recallMsg) await e.friend.recallMsg(id)
+      else return
+      log('mark', `没出金，已撤回抽卡结果（${sec} 秒）`)
+    } catch (err) {
+      log('warn', `撤回抽卡结果失败（多半是机器人不是管理员）：${err?.message ?? err}`)
+    }
+  }, sec * 1000)
+  timer?.unref?.()
+  return true
+}

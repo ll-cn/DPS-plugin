@@ -5,7 +5,7 @@ import { POOL_INIT, isWeaponPool, rollMany, upNames } from '../model/wish/gacha.
 import { flush, getPlayer, poolState, pushRecord, pushStar5, touch } from '../model/wish/store.js'
 import { buildCardData, parseArgs, pityText, poolLabel, textResult, today } from '../model/wish/format.js'
 import { TPL_WISH, renderFailBrief, renderTo } from '../model/render.js'
-import { sendImage } from '../model/send.js'
+import { sendImage, recallLater } from '../model/send.js'
 import { log } from '../model/log.js'
 import { PLUGIN_NAME } from '../model/version.js'
 
@@ -121,17 +121,19 @@ export class genshinWish extends plugin {
     const five = items.filter(i => i.rank === 5)
     if (five.length) log('mark', `抽卡：${e.user_id} 在${POOLS[poolId]?.short}出了 ${five.map(f => f.name).join('、')}`)
 
+    const recallSec = five.length ? 0 : CONFIG.recallNoGold
+
     if (needTextOnly(e)) {
-      await e.reply(textResult(items, ctx))
+      recallLater(e, await e.reply(textResult(items, ctx)), recallSec)
       return true
     }
 
     const img = await renderTo(TPL_WISH, 'gw-wish', await buildCardData(items, ctx))
     if (img) {
-      await sendImage(e, img)
+      recallLater(e, await sendImage(e, img), recallSec)
       return true
     }
-    await e.reply(`${textResult(items, ctx)}\n（${renderFailBrief()}）`)
+    recallLater(e, await e.reply(`${textResult(items, ctx)}\n（${renderFailBrief()}）`), recallSec)
     return true
   }
 }

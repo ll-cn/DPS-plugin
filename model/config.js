@@ -17,7 +17,8 @@ const DEFAULTS = {
   textOnly: false,
   dailyLimit: 10,
   refreshMinutes: 360,
-  pityTip: true
+  pityTip: true,
+  recallNoGold: 8
 }
 
 const DEFAULT_ALIAS = {
@@ -36,7 +37,7 @@ const DEFAULT_YAML = `# ===================== 原神DPS 插件配置 ===========
 # 删掉本文件后，下次查询会自动重新生成这份默认配置。
 
 # 配置版本（插件用它自动升级配置项，一般不用管）
-configVersion: 2
+configVersion: 4
 
 # 数据缓存时长（毫秒）。官方建议 >= 5 分钟，请求太频繁会被 Cloudflare 拦。
 cacheTime: 300000
@@ -83,6 +84,9 @@ refreshMinutes: 360
 
 # 抽卡卡片底部是否显示保底进度
 pityTip: true
+
+# 没出五星（金）时，抽卡结果自动撤回（秒；0 = 不撤回，最高 120）
+recallNoGold: 8
 `
 
 export const CONFIG = { ...DEFAULTS }
@@ -140,7 +144,7 @@ function splitBlocks(text) {
 }
 
 /** 配置模板版本：调整默认值 / 加新键时 +1 */
-const CONFIG_VERSION = 3
+const CONFIG_VERSION = 4
 
 /** 把默认配置里新增的键补进用户配置（保留用户已有内容与注释），并做版本迁移 */
 function syncConfigFile() {
@@ -227,6 +231,7 @@ export function loadConfig(force = false) {
   CONFIG.dailyLimit = zeroNum(raw.dailyLimit, DEFAULTS.dailyLimit)
   CONFIG.refreshMinutes = zeroNum(raw.refreshMinutes, DEFAULTS.refreshMinutes)
   CONFIG.pityTip = raw.pityTip !== false && raw.pityTip !== 'false'
+  CONFIG.recallNoGold = Math.min(120, zeroNum(raw.recallNoGold, DEFAULTS.recallNoGold))
 
   for (const k of Object.keys(ALIAS)) delete ALIAS[k]
   Object.assign(ALIAS, DEFAULT_ALIAS, raw.alias && typeof raw.alias === 'object' ? raw.alias : {})
