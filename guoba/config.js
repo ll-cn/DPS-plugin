@@ -82,5 +82,5 @@ export async function setConfigData(data, { Result }) {
   if (!count) return Result.error('没有可保存的配置项')
   if (!updateConfig(patch)) return Result.error('写入 config/config.yaml 失败，请查看机器人日志')
 
-  return Result.ok(`已保存 ${count} 项，即时生效`)
+  return Result.ok(null, `已保存 ${count} 项，即时生效`)
 }
